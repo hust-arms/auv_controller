@@ -10,7 +10,6 @@
 
 #include <vector>
 #include <assert.h>
-#include <boost/bind.hpp>
 #include "auv_controller/ArmsAUVControllerROS.h"
 
 namespace auv_controller{
@@ -39,46 +38,60 @@ namespace auv_controller{
         private_nh.param("yawd", yaw_d_, 30 * degree2rad);
 
         // Initialization of publisher and subscriber
-        imu_sub_ = nh.subscribe<sensor_msgs::Imu>(std::string("/" + name + "/imu"), 1, boost::bind(&ArmsAUVControllerROS::imuCb, this, _1));
-        pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>(std::string("/" + name + "/pressure"), 1, boost::bind(&ArmsAUVControllerROS::pressureCb, this, _1)); 
-	posegt_sub_ = nh.subscribe<nav_msgs::Odometry>(std::string("/" + name + "/pose_gt"), 1, boost::bind(&ArmsAUVControllerROS::posegtCb, this, _1));
-        depth_sub_ = nh.subscribe<std_msgs::Float64>(std::string("/" + name + "/control_input/depth"), 1, boost::bind(&ArmsAUVControllerROS::depthCb, this, _1));
-        pitch_sub_ = nh.subscribe<std_msgs::Float64>(std::string("/" + name + "/control_input/pitch"), 1, boost::bind(&ArmsAUVControllerROS::pitchCb, this, _1));
-        yaw_sub_ = nh.subscribe<std_msgs::Float64>(std::string("/" + name + "/control_input/yaw"), 1, boost::bind(&ArmsAUVControllerROS::yawCb, this, _1));
+        imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&ArmsAUVControllerROS::imuCb, this, _1));
+        pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/armsauv/pressure", 1, boost::bind(&ArmsAUVControllerROS::pressureCb, this, _1)); 
+	posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&ArmsAUVControllerROS::posegtCb, this, _1));
+        depth_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/depth", 1, boost::bind(&ArmsAUVControllerROS::depthCb, this, _1));
+        pitch_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/pitch", 1, boost::bind(&ArmsAUVControllerROS::pitchCb, this, _1));
+        yaw_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/yaw", 1, boost::bind(&ArmsAUVControllerROS::yawCb, this, _1));
 
-        thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/thrusters/0/input", 1);
-        fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/0/input", 1);
-        fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/1/input", 1);
-        fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/2/input", 1);
-        fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/3/input", 1);
-        fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/4/input", 1);
-        fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(name + "/fins/5/input", 1);
+        thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/thrusters/0/input", 1);
+        fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/0/input", 1);
+        fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/1/input", 1);
+        fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/2/input", 1);
+        fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/3/input", 1);
+        fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/4/input", 1);
+        fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/5/input", 1);
 
         controller_ = new AUVController();
 
         /* parameters setting */
         if(!controller_->setAUVBodyParams(body_params)){
-            ROS_WARN("Error in AUV body parameters setting!");
+            ROS_WARN("Error in AUV body parameters setting! Use default settings!");
+            printAUVBodyParams(); // print body parameters
         }
         if(!controller_->setAUVDynamic(dynamic)){
-            ROS_WARN("Error in AUV dynamic parameters setting!");
+            ROS_WARN("Error in AUV dynamic parameters setting! Use default settings!");
+            printAUVDynamicParams(); // print dyanmic paramters
         }
         if(!controller_->setCtrlParams(ctrl_params)){
-            ROS_WARN("Error in AUV control parameters setting!");
+            ROS_WARN("Error in AUV control parameters setting! Use default settings!");
+            printAUVCtrlParams(); // print control parameters
         }
         if(!controller_->setForceParams(force_params)){
-            ROS_WARN("Error in AUV force parameters setting!");
+            ROS_WARN("Error in AUV force parameters setting! Use default settings!");
+            printAUVForceParams(); // print force parameters
         }
 
         // Create Timer
-        ros::Timer timer = nh.createTimer(ros::Duration(dt_), boost::bind(&ArmsAUVControllerROS::timerCb, this, _1));
+        // ros::Timer timer = nh.createTimer(ros::Duration(dt_), boost::bind(&ArmsAUVControllerROS::timerCb, this, _1));
+        
+        // Create control thread
+        ROS_INFO("Start control thread");
+	ctrl_thread_ = new boost::thread(boost::bind(&ArmsAUVControllerROS::controlThread, this));	
     }
 
     /**
      * @brief Deconstructor
      */ 
     ArmsAUVControllerROS::~ArmsAUVControllerROS(){
-        // Release
+        // Release thread
+	if(ctrl_thread_ != nullptr){
+	    delete ctrl_thread_;
+	    ctrl_thread_ = nullptr;
+	} 
+
+	// Release controller
         if(controller_ != nullptr){
             delete controller_;
             controller_ = nullptr;
@@ -120,6 +133,64 @@ namespace auv_controller{
         // Apply controller output
         applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
     };
+
+    /**
+     * @brief Control thread i
+     */
+    void ArmsAUVControllerROS::controlThread(){
+        /*
+	if(getX() == 0 || getXVelocity() == 0){
+            return;
+        }
+	*/
+        ros::NodeHandle nh;
+        while(nh.ok()){	
+            // if(!(getX() == 0 || getXVelocity() == 0)){
+                // Update sensor messages
+	        AUVKineticSensor sensor_msg;
+                sensor_msg.x_ = getX();
+                sensor_msg.y_ = -getY();
+                sensor_msg.z_ = -getZ();
+                sensor_msg.roll_ = getRoll();
+                sensor_msg.pitch_ = -getPitch();
+                sensor_msg.yaw_ = -getYaw();
+                sensor_msg.x_dot_ = getXVelocity();
+                sensor_msg.y_dot_ = -getYVelocity();
+                sensor_msg.z_dot_ = -getZVelocity();
+                sensor_msg.roll_dot_ = -getRollVelocity();
+                sensor_msg.pitch_dot_ = -getPitchVelocity();
+                sensor_msg.yaw_dot_ = -getYawVelocity();
+
+	        // Print 
+	        std::cout << "Update sensor messages:{" << "x:" << sensor_msg.x_ << " y:" << sensor_msg.y_ << " z:" << sensor_msg.z_
+		  << " roll:" << sensor_msg.roll_ << " pitch:" << sensor_msg.pitch_ << " yaw:" << sensor_msg.yaw_
+		  << " x vel:" << sensor_msg.x_dot_ << " y vel:" << sensor_msg.y_dot_ << " z vel:" << sensor_msg.z_dot_
+		  << " roll vel:" << sensor_msg.roll_dot_ << " pitch vel:" << sensor_msg.pitch_dot_ << " yaw vel" << sensor_msg.yaw_dot_
+		  << "}" << std::endl;
+        
+	        // Create Controller input
+                AUVControllerInput input(getXInput(), getYInput(), getDepthInput(), getPitchInput(), getYawInput() * degree2rad);
+        
+	        // Print control input
+	        std::cout << "Control input:{" << "desired x:" << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ << " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "}" << std::endl; 
+
+                // Create Controller output
+                AUVControllerOutput output;
+
+                // Run controller
+                controller_->controllerRun(sensor_msg, input, output, dt_);
+	
+	        // Print control ouput
+	        std::cout << "Control output:{" << "rouder:" << output.rouder_ << " forward fin:" << output.fwd_fin_ << " stern fin:" << output.aft_fin_ << "}" << std::endl; 
+
+                // Apply controller output
+                applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
+            // }
+
+	    // Sleep
+	    boost::this_thread::sleep(boost::posix_time::milliseconds(dt_ * 1000));
+        }
+    } 
 
     /**
      * @brief Apply controller output
@@ -220,5 +291,49 @@ namespace auv_controller{
     void ArmsAUVControllerROS::ydCb(const std_msgs::Float64::ConstPtr& msg){
         std::lock_guard<std::mutex> guard(y_d_mutex_);
         y_d_ = msg->data;
+    }
+
+    /**
+     * @brief Print auv dynamic parameters on the console
+     */ 
+    void ArmsAUVControllerROS::printAUVDynamicParams(){
+        std::stringstream ss;
+        ss << "AUV dynamic parameters: {";
+        controller_->serializeAUVDynamicParams(ss);
+        ss << "}";
+        ROS_INFO_STREAM(ss.str());
+    }
+
+    /**
+     * @brief Print auv control parameters on the console
+     */ 
+    void ArmsAUVControllerROS::printAUVCtrlParams(){
+        std::stringstream ss;
+        ss << "AUV control parameters: {";
+        controller_->serializeAUVControlParams(ss);
+        ss << "}";
+        ROS_INFO_STREAM(ss.str());
+    }
+
+    /**
+     * @brief Print auv force parameters on the console
+     */ 
+    void ArmsAUVControllerROS::printAUVForceParams(){
+        std::stringstream ss;
+        ss << "AUV Force parameters: {";
+        controller_->serializeAUVForceParams(ss);
+        ss << "}";
+        ROS_INFO_STREAM(ss.str());
+    }
+
+    /**
+     * @brief Print auv body parameters on the console
+     */ 
+    void ArmsAUVControllerROS::printAUVBodyParams(){
+        std::stringstream ss;
+        ss << "AUV body parameters: {";
+        controller_->serializeAUVBodyParams(ss);
+        ss << "}";
+        ROS_INFO_STREAM(ss.str());
     }
 }; // ns
