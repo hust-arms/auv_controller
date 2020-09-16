@@ -7,6 +7,8 @@
  * Copyright (c) 2020 Your Company
  */
 #include <vector>
+#include <string>
+#include <sstream>
 #include "BodyParams.h"
 #include "ForceParams.h"
 #include "CtrlParams.h"
@@ -137,6 +139,27 @@ namespace auv_controller{
          */
         void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt);
 
+    public:
+        /**
+         * @brief Serialize auv body parameters
+         */ 
+        void serializeAUVBodyParams(std::stringstream& str);
+        
+        /**
+         * @brief Serialize auv dynamic parameters
+         */ 
+        void serializeAUVDynamicParams(std::stringstream& str);
+
+        /**
+         * @brief Serialize auv force parameters
+         */ 
+        void serializeAUVForceParams(std::stringstream& str);
+
+        /**
+         * @brief Serialize auv control parameters
+         */ 
+        void serializeAUVControlParams(std::stringstream& str);
+
     private:
         /**
          * @brief Initialize with default parameters
@@ -199,6 +222,7 @@ namespace auv_controller{
         AUVDynamic dynamic_;
         ForceParams force_;
         CtrlParams ctrl_;
+
         AUVKinetic kinetic_;
         CtrlMissionParams mission_;
         SlideModelParams slide_model_;

@@ -121,6 +121,46 @@ namespace auv_controller{
     }
 
     /**
+     * @brief Serialize auv body parameters
+     */ 
+    void AUVController::serializeAUVBodyParams(std::stringstream& str){
+        str << "m: " << body_.m_ << " l: " << body_.l_ << " w: " << body_.w_ << " b: " << body_.b_;
+        str << " xb: " << body_.x_b_ << " yb: " << body_.y_b_ << " zb: " << body_.z_b_;
+        str << " xg: " << body_.x_g_ << " yg: " << body_.y_g_ << " zg: " << body_.z_g_;
+        str << " ixx: " << body_.i_xx_ << " iyy: " << body_.i_yy_ << " izz: " << body_.i_zz_;
+    }
+
+    /**
+     * @brief Serialize auv dynamic parameters
+     */ 
+    void AUVController::serializeAUVDynamicParams(std::stringstream& str){
+        str << "xdotu: " << dynamic_.x_dotu_ << " ydotv: " << dynamic_.y_dotv_ <<" ydotr: " << dynamic_.y_dotr_ << " zdotw: " << dynamic_.z_dotw_ << " zdotq: " << dynamic_.z_dotq_;
+        str << " kdotp: " << dynamic_.k_dotp_ << " mdotw: " << dynamic_.m_dotw_ << " mdotq: " << dynamic_.m_dotq_ << " ndotv: " << dynamic_.n_dotv_ << " ndotr: " << dynamic_.n_dotr_;
+        str << " xuu: " << dynamic_.x_uu_ << " yvv: " << dynamic_.y_vv_ << " yrr: " << dynamic_.y_rr_ << " zww: " << dynamic_.z_ww_ << " zqq: " << dynamic_.z_qq_;
+        str << " kpp: " << dynamic_.k_pp_ << " mww: " << dynamic_.m_ww_ << " mqq: " << dynamic_.m_qq_ << " nvv: " << dynamic_.n_vv_ << " nrr: " << dynamic_.n_rr_;
+        str << " yuv: " << dynamic_.y_uv_ << " yur: " << dynamic_.y_ur_ << " zuw: " << dynamic_.z_uw_ << " zuq: " << dynamic_.z_uq_;
+        str << " muw: " << dynamic_.m_uw_ << " muq: " << dynamic_.m_uq_ << " nuv: " << dynamic_.n_uv_ << " nur: " << dynamic_.n_ur_;
+    } 
+
+    /**
+     * @brief Serialize auv force parameters
+     */ 
+    void AUVController::serializeAUVForceParams(std::stringstream& str){
+        str << "yuudr: " << force_.y_uudr_ << " zuuds: " << force_.z_uuds_ << " zuudb: " << force_.z_uudb_;
+        str << " muuds: " << force_.m_uuds_ << " muudb: " << force_.m_uudb_ << " nuudr: " << force_.n_uudr_;
+    }
+
+    /**
+     * @brief Serialize auv control parameters
+     */ 
+    void AUVController::serializeAUVControlParams(std::stringstream& str){
+        str << "cz: " << ctrl_.z_.c_ << " kz: " << ctrl_.z_.k_ << " alphaz: " << ctrl_.z_.alpha_;
+        str << " ctheta: " << ctrl_.theta_.c_ << " ktheta: " << ctrl_.theta_.k_ << " alphatheta: " << ctrl_.theta_.alpha_;
+        str << " cpsi: " << ctrl_.psi_.c_ << " kpsi: " << ctrl_.psi_.k_ << " alphapsi: " << ctrl_.psi_.alpha_;
+        str << " boundary thick: " << ctrl_.bondary_thick_;
+    }
+
+    /**
      * @brief Control solution
      */
     void AUVController::controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt)
@@ -208,7 +248,7 @@ namespace auv_controller{
             dynamic_.y_rr_ * kinetic_.r_ * fabs(kinetic_.r_) + 
             dynamic_.y_ur_ * kinetic_.u_ * kinetic_.r_;
 
-        // 
+        // Rolling variable substitution 
         horizon_sf_.a_pv_ = body_.m_ * body_.x_g_ - dynamic_.n_dotv_;
         horizon_sf_.a_pr_ = body_.i_zz_ - dynamic_.n_dotr_;
         horizon_sf_.a_pdr_ = force_.n_uudr_ * kinetic_.u_ * kinetic_.u_;
