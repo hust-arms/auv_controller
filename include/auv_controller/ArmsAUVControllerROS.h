@@ -11,6 +11,10 @@
 #include <mutex>
 #include <string>
 
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/chrono.hpp>
+
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Header.h>
@@ -44,6 +48,11 @@ namespace auv_controller{
          * @brief Timer callback
          */
         void timerCb(const ros::TimerEvent& event);
+
+	/**
+	 * @brief Control thread
+	 */
+	void controlThread();
 
         /**
          * @brief Apply controller output
@@ -211,6 +220,25 @@ namespace auv_controller{
             return y_d_;
         }
         
+        /**
+         * @brief Print auv dynamic parameters on the console
+         */ 
+        void printAUVDynamicParams();
+
+        /**
+         * @brief Print auv control parameters on the console
+         */ 
+        void printAUVCtrlParams();
+
+        /**
+         * @brief Print auv force parameters on the console
+         */ 
+        void printAUVForceParams();
+
+        /**
+         * @brief Print auv body parameters on the console
+         */ 
+        void printAUVBodyParams();
 
     private:
         AUVController* controller_;
@@ -237,6 +265,10 @@ namespace auv_controller{
         double depth_d_, pitch_d_, yaw_d_; // desired parameters
         double x_d_, y_d_;
 
+	// Control thread
+        boost::thread* ctrl_thread_;
+
+	// Source lock
         std::mutex imu_mutex_, pressure_mutex_, posegt_mutex_, dvl_mutex_;
         std::mutex depth_mutex_, pitch_mutex_, yaw_mutex_;
         std::mutex x_d_mutex_, y_d_mutex_;
