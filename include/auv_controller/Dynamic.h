@@ -6,6 +6,9 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef DYNAMIC_H_
+#define DYNAMIC_H_
+
 namespace auv_controller{
     /**
      * @brief AUV dynamic parameters
@@ -55,3 +58,5 @@ namespace auv_controller{
         }
     }; // AUVDynamic
 }; // ns
+
+#endif

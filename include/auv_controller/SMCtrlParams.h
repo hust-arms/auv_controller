@@ -7,6 +7,9 @@
  * Copyright (c) 2020 Your Company
  */
 
+#ifndef SM_CTRL_PARAMS_H_
+#define SM_CTRL_PARAMS_H_
+
 namespace auv_controller{
     /**
      * @brief Slide control parameters
@@ -18,3 +21,5 @@ namespace auv_controller{
         double l_;
     }; // SMCtrlParams
 }; // ns
+
+#endif

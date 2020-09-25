@@ -6,6 +6,9 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef AUV_CONTROLLER_H_
+#define AUV_CONTROLLER_H_
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -240,3 +243,5 @@ namespace auv_controller{
         const unsigned int force_num_ = 6;
     }; // AUVController
 }; // ns
+
+#endif

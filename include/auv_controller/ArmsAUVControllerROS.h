@@ -6,6 +6,8 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef ARMSAUV_CONTROLLER_ROS_H_
+#define ARMSAUV_CONTROLLER_ROS_H_
 
 #include <thread>
 #include <mutex>
@@ -275,3 +277,5 @@ namespace auv_controller{
 
     }; // AUVControllerROS
 }; // ns
+
+#endif

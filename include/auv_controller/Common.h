@@ -6,6 +6,8 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef COMMON_H_
+#define COMMON_H_
 
 namespace auv_controller{
     const u_int32_t ms = 1000;
@@ -23,3 +25,5 @@ namespace auv_controller{
         double roll_dot_, pitch_dot_, yaw_dot_;
     }; // SensorData
 }; // ns
+
+#endif

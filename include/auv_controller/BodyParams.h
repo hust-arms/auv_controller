@@ -6,6 +6,8 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef BODY_PARAMS_H_
+#define BODY_PARAMS_H_
 
 namespace auv_controller{
     /**
@@ -75,3 +77,5 @@ namespace auv_controller{
     }; // AUVBodyParams
 
 }; // ns
+
+#endif

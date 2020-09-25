@@ -6,6 +6,9 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef FORCE_PARAMS_H_
+#define FORCE_PARAMS_H_
+
 namespace auv_controller{
     struct ForceParams{
         double y_uudr_, z_uuds_, z_uudb_;
@@ -20,3 +23,5 @@ namespace auv_controller{
         }
     }; // CtrlForceParams
 }; // ns
+
+#endif

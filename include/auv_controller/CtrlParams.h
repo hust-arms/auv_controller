@@ -6,6 +6,8 @@
  * 
  * Copyright (c) 2020 Your Company
  */
+#ifndef CTRL_PARAMS_H_
+#define CTRL_PARAMS_H_
 
 #include "SMCtrlParams.h"
 
@@ -68,3 +70,5 @@ namespace auv_controller{
         double lateral_dist_;
     }; // CtrlMissionParams
 }; // ns
+
+#endif
