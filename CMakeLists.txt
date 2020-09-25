@@ -83,7 +83,6 @@ add_library(${PROJECT_NAME}
 )
 
 add_executable(armsauv_controller_test
-  
   test/ArmsAUVControllerTest.cpp
 )
 
