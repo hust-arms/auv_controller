@@ -181,6 +181,8 @@ namespace auv_controller{
         mission_.theta_.Update();
 
         mission_.lateral_dist_ = (kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
+        printf("LateralDist:%f\n", mission_.lateral_dist_);
+
         mission_.psi_.ref_ = input.yaw_d_ + atan(mission_.lateral_dist_ / 10);
         mission_.psi_.ref_dot_ = (mission_.psi_.ref_ - mission_.psi_.pre_ref_) / dt;
         mission_.psi_.ref_dot2_ = (mission_.psi_.ref_dot_ - mission_.psi_.pre_ref_dot_) / dt;
@@ -223,15 +225,19 @@ namespace auv_controller{
         depth_sf_.b_t_ = (depth_sf_.a_zw_ * depth_sf_.f_t_ - depth_sf_.a_tw_ * depth_sf_.f_z_) / common1;
         depth_sf_.b_tb_ = (depth_sf_.a_zw_ * depth_sf_.a_tb_ - depth_sf_.a_tw_ * depth_sf_.a_zb_) / common1;
         depth_sf_.b_ts_ = (depth_sf_.a_zw_ * depth_sf_.a_ts_ - depth_sf_.a_tw_ * depth_sf_.a_zs_) / common1;
+        printf("common1:%f\n", common1);
 
         // dot2_z & dot2_theta
-        depth_sf_.g_z_ = depth_sf_.b_zs_ * cos(kinetic_.theta_) - kinetic_.u_ * kinetic_.q_ * cos(kinetic_.theta_) - 
+        depth_sf_.g_z_ = depth_sf_.b_z_ * cos(kinetic_.theta_) - kinetic_.u_ * kinetic_.q_ * cos(kinetic_.theta_) - 
             kinetic_.w_ * kinetic_.q_ * sin(kinetic_.theta_);
         depth_sf_.g_zb_ = depth_sf_.b_zb_ * cos(kinetic_.theta_);
         depth_sf_.g_zs_ = depth_sf_.b_zs_ * cos(kinetic_.theta_);
         depth_sf_.g_t_ = depth_sf_.b_t_;
         depth_sf_.g_tb_ = depth_sf_.b_tb_;
         depth_sf_.g_ts_ = depth_sf_.b_ts_;
+        printf("Temp:{g_zb:%f g_ts:%f g_tb:%f g_zs:%f}\n", depth_sf_.g_zb_, depth_sf_.g_ts_, depth_sf_.g_tb_, depth_sf_.g_zs_);
+        printf("Temp:{b_z:%f theta:%f u:%f q:%f w:%f b_zb:%f b_zs:%f b_t:%f b_tb%f b_ts%f\n}", 
+               depth_sf_.b_z_, kinetic_.theta_, kinetic_.u_, kinetic_.q_, kinetic_.w_, depth_sf_.b_zb_, depth_sf_.b_zs_, depth_sf_.b_t_, depth_sf_.b_tb_, depth_sf_.b_ts_);
         
         // depth & theta_dot
         depth_sf_.dot_z_ = -kinetic_.u_ * sin(kinetic_.theta_) + kinetic_.w_ * cos(kinetic_.theta_);
@@ -242,7 +248,7 @@ namespace auv_controller{
         horizon_sf_.a_yr_ = body_.m_ * body_.x_g_ - dynamic_.y_dotr_;
         horizon_sf_.a_ydr_ = force_.y_uudr_ * kinetic_.u_ * kinetic_.u_;
         horizon_sf_.f_y_ = body_.m_ * body_.y_g_ * kinetic_.r_ * kinetic_.r_ - 
-            body_.m_ * kinetic_.u_ * kinetic_.r_ + 
+            body_.m_ * kinetic_.u_ * kinetic_.r_ + dynamic_.x_dotu_ * kinetic_.u_ * kinetic_.r_ +
             dynamic_.y_vv_ * kinetic_.v_ * fabs(kinetic_.v_) + 
             dynamic_.y_uv_ * kinetic_.u_ * kinetic_.v_ + 
             dynamic_.y_rr_ * kinetic_.r_ * fabs(kinetic_.r_) + 
@@ -267,6 +273,7 @@ namespace auv_controller{
         horizon_sf_.b_ydr_ = (horizon_sf_.a_pr_ * horizon_sf_.a_ydr_ - horizon_sf_.a_yr_ * horizon_sf_.a_pdr_) / common2;
         horizon_sf_.b_p_ = (horizon_sf_.a_yv_ * horizon_sf_.f_p_ - horizon_sf_.a_pv_ * horizon_sf_.f_y_) / common2;
         horizon_sf_.b_pdr_ = (horizon_sf_.a_yv_ * horizon_sf_.a_pdr_ - horizon_sf_.a_pv_ * horizon_sf_.a_ydr_) / common2;
+        printf("common2:%f\n", common2);
 
         // dot_psi
         horizon_sf_.dot_psi_ = kinetic_.r_;
@@ -295,9 +302,11 @@ namespace auv_controller{
 
         // Command computation
         double common3 = depth_sf_.g_zb_ * depth_sf_.g_ts_ - depth_sf_.g_tb_ * depth_sf_.g_zs_;
+        printf("Temp:{g_zb:%f g_ts:%f g_tb:%f g_zs:%f}\n", depth_sf_.g_zb_, depth_sf_.g_ts_, depth_sf_.g_tb_, depth_sf_.g_zs_);
         deltab_ = (slide_model_.z_.l_ * depth_sf_.g_ts_ - slide_model_.theta_.l_ * depth_sf_.g_zs_) / common3;
         deltas_ = (slide_model_.theta_.l_ * depth_sf_.g_zb_ - slide_model_.z_.l_ * depth_sf_.g_tb_) / common3;
         deltar_ = slide_model_.psi_.l_ / horizon_sf_.b_pdr_;
+        printf("common3:%f\n", common3);
 
         if(fabs(deltab_) > 30 / 57.3){
             deltab_ = (30 / 57.3) * sign(deltab_);
@@ -309,9 +318,11 @@ namespace auv_controller{
             deltar_ = (30 / 57.3) * sign(deltar_);
         }
 
+        // Print control value of forward, afterward and orientation rouder
+        // printf("forward fin: %f afterward fin: %f rouder: %f", deltab_, deltas_, deltar_);
+
         output.fwd_fin_ = deltab_;
         output.aft_fin_ = deltas_;
         output.rouder_ = deltar_;
     };
-
 }; // ns
