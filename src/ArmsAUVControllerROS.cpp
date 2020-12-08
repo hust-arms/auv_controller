@@ -29,18 +29,21 @@ namespace auv_controller{
 
         // Default parameters
         private_nh.param("base_frame", base_frame_, std::string("base_link"));
-        private_nh.param("rpm", rpm_, 1000);
+        private_nh.param("rpm", rpm_, 1250);
         private_nh.param("control_period", dt_, 0.1);
         private_nh.param("xd", x_d_, 30.0);
         private_nh.param("yd", y_d_, 0.0);
         private_nh.param("depthd", depth_d_, 10.0);
         private_nh.param("pitchd", pitch_d_, 0.0);
-        private_nh.param("yawd", yaw_d_, 30 * degree2rad);
+        // private_nh.param("yawd", yaw_d_, 30 * degree2rad);
+        private_nh.param("yawd", yaw_d_, 0.0);
+
+        printf("Target:{rpm:%d ctrl_period:%f x:%f y:%f depth:%f pitch:%f yaw:%f}\n", rpm_, dt_, x_d_, y_d_, depth_d_, pitch_d_, yaw_d_);
 
         // Initialization of publisher and subscriber
         imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&ArmsAUVControllerROS::imuCb, this, _1));
         pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/armsauv/pressure", 1, boost::bind(&ArmsAUVControllerROS::pressureCb, this, _1)); 
-	posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&ArmsAUVControllerROS::posegtCb, this, _1));
+	    posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&ArmsAUVControllerROS::posegtCb, this, _1));
         depth_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/depth", 1, boost::bind(&ArmsAUVControllerROS::depthCb, this, _1));
         pitch_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/pitch", 1, boost::bind(&ArmsAUVControllerROS::pitchCb, this, _1));
         yaw_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/yaw", 1, boost::bind(&ArmsAUVControllerROS::yawCb, this, _1));
@@ -169,26 +172,26 @@ namespace auv_controller{
 		  << "}" << std::endl;
         
 	        // Create Controller input
-                AUVControllerInput input(getXInput(), getYInput(), getDepthInput(), getPitchInput(), getYawInput() * degree2rad);
+            AUVControllerInput input(getXInput(), getYInput(), getDepthInput(), getPitchInput(), getYawInput() * degree2rad);
         
 	        // Print control input
 	        std::cout << "Control input:{" << "desired x:" << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ << " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "}" << std::endl; 
 
-                // Create Controller output
-                AUVControllerOutput output;
-
-                // Run controller
-                controller_->controllerRun(sensor_msg, input, output, dt_);
+            // Create Controller output
+            AUVControllerOutput output;
+            output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rouder_ = 0.0;
+            
+            // Run controller
+            controller_->controllerRun(sensor_msg, input, output, dt_);
 	
 	        // Print control ouput
 	        std::cout << "Control output:{" << "rouder:" << output.rouder_ << " forward fin:" << output.fwd_fin_ << " stern fin:" << output.aft_fin_ << "}" << std::endl; 
 
-                // Apply controller output
-                applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
-            // }
-
-	    // Sleep
-	    boost::this_thread::sleep(boost::posix_time::milliseconds(dt_ * 1000));
+            // Apply controller output
+            applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
+            
+            // Sleep
+            boost::this_thread::sleep(boost::posix_time::milliseconds(dt_ * 1000));
         }
     } 
 
