@@ -10,6 +10,8 @@
 #ifndef SM_CTRL_PARAMS_H_
 #define SM_CTRL_PARAMS_H_
 
+#include <stdio.h>
+
 namespace auv_controller{
     /**
      * @brief Slide control parameters
@@ -19,6 +21,13 @@ namespace auv_controller{
         double dot_e_;
         double s_;
         double l_;
+
+        /**
+         * @brief Print slide control parameters
+         */ 
+        void printSMCtrlParameters()const{
+            printf("SMCtrlParam:{e:%f dot_e:%f s:%f l:%f}\n", e_, dot_e_, s_, l_);
+        }
     }; // SMCtrlParams
 }; // ns
 

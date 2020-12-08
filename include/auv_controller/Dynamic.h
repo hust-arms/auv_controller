@@ -53,7 +53,7 @@ namespace auv_controller{
             k_dotp_ = kdotp; m_dotw_ = mdotw; m_dotq_ = mdotq; n_dotv_ = ndotv; n_dotr_ = ndotr;
             x_uu_ = xuu; y_vv_ = yvv; y_rr_ = yrr; z_ww_ = zww; z_qq_ = zqq;
             k_pp_ = kpp; m_ww_ = mww; m_qq_ = mqq; n_vv_ = nvv; n_rr_ = nrr;
-            y_uv_ = yur; y_ur_ = yur; z_uw_ = zuw; z_uq_ = zuq;
+            y_uv_ = yuv; y_ur_ = yur; z_uw_ = zuw; z_uq_ = zuq;
             m_uw_ = muw; m_uq_ = muq; n_uv_ = nuv; n_ur_ = nur;
         }
     }; // AUVDynamic

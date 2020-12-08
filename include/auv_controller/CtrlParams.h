@@ -9,6 +9,7 @@
 #ifndef CTRL_PARAMS_H_
 #define CTRL_PARAMS_H_
 
+#include <stdio.h>
 #include "SMCtrlParams.h"
 
 namespace auv_controller{
@@ -28,6 +29,14 @@ namespace auv_controller{
             k_ = k;
             alpha_ = alpha;
         }
+
+        /**
+         * @brief Print slide control parameters
+         */
+        void printCtrlParameters()const{
+            printf("CtrlParams:{c%f k:%f alpha:%f}\n", c_, k_, alpha_);
+        }
+
     }; // CtrlParams
 
     /**

@@ -9,6 +9,8 @@
 #ifndef BODY_PARAMS_H_
 #define BODY_PARAMS_H_
 
+#include <stdio.h>
+
 namespace auv_controller{
     /**
      * @brief Kinetic parameters of AUV
@@ -40,6 +42,13 @@ namespace auv_controller{
          */
         void setVelocity(double u, double v, double w, double p, double q, double r){
             u_ = u; v_ = v; w_ = w; p_ = p; q_ = q; r_ = r;
+        }
+
+        /**
+         * @brief Print kinetic param
+         */
+        void printKineticParams()const{
+            printf("Pose:{x:%f y:%f z:%f phi:%f theta:%f psi%f} Vel{l_x:%f l_y:%f l_z:%f a_x:%f a_y:%f a_z:%f}\n", x_, y_, z_, phi_, theta_, psi_, u_, v_, w_, p_, q_, r_);
         }
     }; // AUVKinetic
 
@@ -73,6 +82,15 @@ namespace auv_controller{
             m_ = m; l_ = l; w_ = w, b_ = b;
             x_b_ = xb; y_b_ = yb; z_b_ = zb; x_g_ = xg; y_g_ = yg; z_g_ = zg;
             i_xx_ = ixx; i_yy_ = iyy; i_zz_ = izz;
+        }
+
+        /**
+         * @brief Print body params
+         */ 
+        void printBodyParams()const{
+            printf("Basic:{mass:%f len:%f weight:%f buoyancy:%f} ", m_, l_, w_, b_);
+            printf("Coord:{buoy_x:%f buoy_y:%f buoy_z:%f grav_x:%f grav_y:%f grav_z:%f} ", x_b_, y_b_, z_b_, x_g_, y_g_, z_g_);
+            printf("Inertial:{ixx:%f iyy:%f izz:%f}\n", i_xx_, i_yy_, i_zz_);
         }
     }; // AUVBodyParams
 
