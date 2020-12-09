@@ -174,11 +174,15 @@ namespace auv_controller{
         mission_.z_.ref_dot_ = 0;
         mission_.z_.ref_dot2_ = 0;
         mission_.z_.Update(); // update previous depth and depth differential
+        printf("z:{ref:%f ref_dot:%f ref_dot2:%f pre_ref:%f pre_ref_dot:%f}\n", mission_.z_.ref_, mission_.z_.ref_dot_, mission_.z_.ref_dot2_, 
+               mission_.z_.pre_ref_, mission_.z_.pre_ref_dot_);
 
         mission_.theta_.ref_ = input.pitch_d_ + 0.1 * atan((kinetic_.z_ - mission_.z_.ref_) / (4 * body_.l_));
         mission_.theta_.ref_dot_ = (mission_.theta_.ref_ - mission_.theta_.pre_ref_) / dt;
         mission_.theta_.ref_dot2_ = (mission_.theta_.ref_dot_ - mission_.theta_.pre_ref_dot_) / dt;
         mission_.theta_.Update();
+        printf("theta:{ref:%f ref_dot:%f ref_dot2:%f pre_ref:%f pre_ref_dot:%f}\n", mission_.theta_.ref_, mission_.theta_.ref_dot_, mission_.theta_.ref_dot2_, 
+               mission_.theta_.pre_ref_, mission_.theta_.pre_ref_dot_);
 
         mission_.lateral_dist_ = (kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
         printf("LateralDist:%f\n", mission_.lateral_dist_);
@@ -187,6 +191,8 @@ namespace auv_controller{
         mission_.psi_.ref_dot_ = (mission_.psi_.ref_ - mission_.psi_.pre_ref_) / dt;
         mission_.psi_.ref_dot2_ = (mission_.psi_.ref_dot_ - mission_.psi_.pre_ref_dot_) / dt;
         mission_.psi_.Update();
+        printf("psi:{ref:%f ref_dot:%f ref_dot2:%f pre_ref:%f pre_ref_dot:%f}\n", mission_.psi_.ref_, mission_.psi_.ref_dot_, mission_.psi_.ref_dot2_, 
+               mission_.psi_.pre_ref_, mission_.psi_.pre_ref_dot_);
 
         // Lateral variable substitution
         depth_sf_.a_zw_ = body_.m_ - dynamic_.z_dotw_;

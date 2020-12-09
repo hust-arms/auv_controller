@@ -33,10 +33,10 @@ namespace auv_controller{
         private_nh.param("control_period", dt_, 0.1);
         private_nh.param("xd", x_d_, 30.0);
         private_nh.param("yd", y_d_, 0.0);
-        private_nh.param("depthd", depth_d_, 10.0);
+        private_nh.param("depthd", depth_d_, 0.0);
         private_nh.param("pitchd", pitch_d_, 0.0);
-        // private_nh.param("yawd", yaw_d_, 30 * degree2rad);
-        private_nh.param("yawd", yaw_d_, 0.0);
+        private_nh.param("yawd", yaw_d_, 30 * degree2rad);
+        // private_nh.param("yawd", yaw_d_, 0.0);
 
         printf("Target:{rpm:%d ctrl_period:%f x:%f y:%f depth:%f pitch:%f yaw:%f}\n", rpm_, dt_, x_d_, y_d_, depth_d_, pitch_d_, yaw_d_);
 
@@ -125,7 +125,7 @@ namespace auv_controller{
         sensor_msg.yaw_dot_ = -getYawVelocity();
 
         // Create Controller input
-        AUVControllerInput input(getXInput(), getYInput(), getDepthInput(), getPitchInput(), getYawInput() * degree2rad);
+        AUVControllerInput input(getDepthInput(), getPitchInput() * degree2rad, getYawInput() * degree2rad, getXInput(), getYInput());
 
         // Create Controller output
         AUVControllerOutput output;
@@ -172,7 +172,7 @@ namespace auv_controller{
 		  << "}" << std::endl;
         
 	        // Create Controller input
-            AUVControllerInput input(getXInput(), getYInput(), getDepthInput(), getPitchInput(), getYawInput() * degree2rad);
+            AUVControllerInput input(getDepthInput(), getPitchInput() * degree2rad, getYawInput() * degree2rad, getXInput(), getYInput());
         
 	        // Print control input
 	        std::cout << "Control input:{" << "desired x:" << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ << " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "}" << std::endl; 
