@@ -179,6 +179,14 @@ namespace auv_controller{
             double b_z_, b_zb_, b_zs_, b_t_, b_tb_, b_ts_;
             double g_z_, g_zb_, g_zs_, g_t_, g_tb_, g_ts_;
             double dot_z_, dot_theta_;
+
+            void init(){
+                a_zw_=0.0; a_zq_=0.0; a_zs_=0.0; a_zb_=0.0; f_z_=0.0;
+                a_tw_=0.0; a_tq_=0.0; a_ts_=0.0; a_tb_=0.0; f_t_=0.0;
+                b_z_=0.0; b_zb_=0.0; b_zs_=0.0; b_t_=0.0; b_tb_=0.0; b_ts_=0.0;
+                g_z_=0.0; g_zb_=0.0; g_zs_=0.0; g_t_=0.0; g_tb_=0.0; g_ts_=0.0;
+                dot_z_=0.0; dot_theta_=0.0;
+            }
         }; // AUVDepthSFStatus
 
         /**
@@ -189,6 +197,13 @@ namespace auv_controller{
             double a_pv_, a_pr_, a_pdr_, f_p_;
             double b_y_, b_ydr_, b_p_, b_pdr_;
             double dot_psi_;
+
+            void init(){
+                a_yv_=0.0; a_yr_=0.0; a_ydr_=0.0; f_y_=0.0;
+                a_pv_=0.0; a_pr_=0.0; a_pdr_=0.0; f_p_=0.0;
+                b_y_=0.0; b_ydr_=0.0; b_p_=0.0; b_pdr_=0.0;
+                dot_psi_=0.0;
+            }
         }; // AUVHorizonSFStatus
 
         /**
