@@ -33,9 +33,11 @@ namespace auv_controller{
         private_nh.param("control_period", dt_, 0.1);
         private_nh.param("xd", x_d_, 30.0);
         private_nh.param("yd", y_d_, 0.0);
-        private_nh.param("depthd", depth_d_, 0.0);
-        private_nh.param("pitchd", pitch_d_, 0.0);
-        private_nh.param("yawd", yaw_d_, 30 * degree2rad);
+        private_nh.param("depthd", depth_d_, 20.0);
+        double pitch_d = 0.0 * degree2rad;
+        double yaw_d = 0.0 * degree2rad;
+        private_nh.param("pitchd", pitch_d_, pitch_d);
+        private_nh.param("yawd", yaw_d_, yaw_d);
         // private_nh.param("yawd", yaw_d_, 0.0);
 
         printf("Target:{rpm:%d ctrl_period:%f x:%f y:%f depth:%f pitch:%f yaw:%f}\n", rpm_, dt_, x_d_, y_d_, depth_d_, pitch_d_, yaw_d_);
@@ -47,6 +49,7 @@ namespace auv_controller{
         depth_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/depth", 1, boost::bind(&ArmsAUVControllerROS::depthCb, this, _1));
         pitch_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/pitch", 1, boost::bind(&ArmsAUVControllerROS::pitchCb, this, _1));
         yaw_sub_ = nh.subscribe<std_msgs::Float64>("/armsauv/control_input/yaw", 1, boost::bind(&ArmsAUVControllerROS::yawCb, this, _1));
+        dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>("/armsauv/dvl", 1, boost::bind(&ArmsAUVControllerROS::dvlCb, this, _1));
 
         thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/thrusters/0/input", 1);
         fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/0/input", 1);
@@ -125,7 +128,7 @@ namespace auv_controller{
         sensor_msg.yaw_dot_ = -getYawVelocity();
 
         // Create Controller input
-        AUVControllerInput input(getDepthInput(), getPitchInput() * degree2rad, getYawInput() * degree2rad, getXInput(), getYInput());
+        AUVControllerInput input(getDepthInput(), getPitchInput(), getYawInput(), getXInput(), getYInput());
 
         // Create Controller output
         AUVControllerOutput output;
@@ -172,7 +175,7 @@ namespace auv_controller{
 		  << "}" << std::endl;
         
 	        // Create Controller input
-            AUVControllerInput input(getDepthInput(), getPitchInput() * degree2rad, getYawInput() * degree2rad, getXInput(), getYInput());
+            AUVControllerInput input(getDepthInput(), getPitchInput(), getYawInput(), getXInput(), getYInput());
         
 	        // Print control input
 	        std::cout << "Control input:{" << "desired x:" << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ << " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "}" << std::endl; 
@@ -247,12 +250,14 @@ namespace auv_controller{
         roll_dot_ = msg->angular_velocity.x;
         pitch_dot_ =  msg->angular_velocity.y;
         yaw_dot_ = msg->angular_velocity.z;
+        // printf("IMU:{roll_dot:%f pitch_dot:%f yaw_dot:%f}\n", roll_dot_, pitch_dot_, yaw_dot_);
     }
 
     void ArmsAUVControllerROS::pressureCb(const sensor_msgs::FluidPressure::ConstPtr& msg) // For pressure sensor
     {
         std::lock_guard<std::mutex> guard(pressure_mutex_);
         depth_ = static_cast<double>((msg->fluid_pressure - 101) / 10.1) - 0.25;
+        // printf("Pressure:{depth:%f}\n", depth_);
     }
 
     void ArmsAUVControllerROS::posegtCb(const nav_msgs::Odometry::ConstPtr& msg) // For pose sensor
@@ -261,6 +266,7 @@ namespace auv_controller{
         x_ = msg->pose.pose.position.x;
         y_ = msg->pose.pose.position.y;
         z_ = msg->pose.pose.position.z;
+        // printf("PoseGt:{x:%f y:%f z:%f}\n", x_, y_, z_);
     }
 
     void ArmsAUVControllerROS::dvlCb(const uuv_sensor_ros_plugins_msgs::DVL::ConstPtr& msg) // For DVL
@@ -269,6 +275,7 @@ namespace auv_controller{
         x_dot_ = msg->velocity.x;
         y_dot_ = msg->velocity.y;
         z_dot_ = msg->velocity.z;
+        // printf("DVL:{x_vel:%f y_vel:%f z_vel:%f}\n", x_dot_, y_dot_, z_dot_);
     }
 
     void ArmsAUVControllerROS::depthCb(const std_msgs::Float64::ConstPtr& msg){
