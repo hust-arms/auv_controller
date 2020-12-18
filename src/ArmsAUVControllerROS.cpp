@@ -1,5 +1,5 @@
 /*
- * Filename: auv_control\ArmsAUVController.cpp
+ * Filename: auv_control\ArmsAUVControllerROS.cpp
  * Path: auv_control
  * Created Date: Wednesday, September 9th 2020, 10:01:12 am
  * Author: zhao wang
@@ -58,7 +58,23 @@ namespace auv_controller{
         fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/3/input", 1);
         fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/4/input", 1);
         fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/5/input", 1);
+        /* 
+        imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/O_29qt/imu", 1, boost::bind(&ArmsAUVControllerROS::imuCb, this, _1));
+        pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/O_29qt/pressure", 1, boost::bind(&ArmsAUVControllerROS::pressureCb, this, _1)); 
+	    posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/O_29qt/pose_gt", 1, boost::bind(&ArmsAUVControllerROS::posegtCb, this, _1));
+        depth_sub_ = nh.subscribe<std_msgs::Float64>("/O_29qt/control_input/depth", 1, boost::bind(&ArmsAUVControllerROS::depthCb, this, _1));
+        pitch_sub_ = nh.subscribe<std_msgs::Float64>("/O_29qt/control_input/pitch", 1, boost::bind(&ArmsAUVControllerROS::pitchCb, this, _1));
+        yaw_sub_ = nh.subscribe<std_msgs::Float64>("/O_29qt/control_input/yaw", 1, boost::bind(&ArmsAUVControllerROS::yawCb, this, _1));
+        dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>("/O_29qt/dvl", 1, boost::bind(&ArmsAUVControllerROS::dvlCb, this, _1));
 
+        thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/thrusters/0/input", 1);
+        fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/0/input", 1);
+        fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/1/input", 1);
+        fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/2/input", 1);
+        fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/3/input", 1);
+        fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/4/input", 1);
+        fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/O_29qt/fins/5/input", 1);
+        */
         controller_ = new AUVController();
 
         /* parameters setting */
