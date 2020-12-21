@@ -32,8 +32,8 @@ namespace auv_controller{
         private_nh.param("rpm", rpm_, 1250);
         private_nh.param("control_period", dt_, 0.1);
         private_nh.param("xd", x_d_, 30.0);
-        private_nh.param("yd", y_d_, 0.0);
-        private_nh.param("depthd", depth_d_, 20.0);
+        private_nh.param("yd", y_d_, 10.0);
+        private_nh.param("depthd", depth_d_, 0.0);
         double pitch_d = 0.0 * degree2rad;
         double yaw_d = 0.0 * degree2rad;
         private_nh.param("pitchd", pitch_d_, pitch_d);
@@ -177,7 +177,8 @@ namespace auv_controller{
                 sensor_msg.pitch_ = -getPitch();
                 sensor_msg.yaw_ = -getYaw();
                 sensor_msg.x_dot_ = getXVelocity();
-                sensor_msg.y_dot_ = -getYVelocity();
+                // sensor_msg.y_dot_ = -getYVelocity();
+                sensor_msg.y_dot_ = 0.0;
                 sensor_msg.z_dot_ = -getZVelocity();
                 sensor_msg.roll_dot_ = -getRollVelocity();
                 sensor_msg.pitch_dot_ = -getPitchVelocity();
