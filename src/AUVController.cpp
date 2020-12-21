@@ -83,7 +83,7 @@ namespace auv_controller{
             140.68, 73, -57.47, -50.3);
         setForceParams(38.279, -38.279, -44.981,
             41.686, -44.531, -41.686);
-        setCtrlParams(0.08, 0.1, 0.6, 0.1, 0.1, 0.6, 0.8, 0.8, 0.8, 0.1);
+        setCtrlParams(0.08, 0.1, 0.6, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.1);
 
         depth_sf_.init();
         horizon_sf_.init();
@@ -113,8 +113,7 @@ namespace auv_controller{
     /**
      * @brief Set control parameters
      */
-    void AUVController::setCtrlParams(double cz, double kz, double alphaz,
-            double ctheta, double ktheta, double alphatheta,
+    void AUVController::setCtrlParams(double cz, double kz, double alphaz, double ctheta, double ktheta, double alphatheta,
             double cpsi, double kpsi, double alphapsi, double bt)
     {  
         ctrl_.z_.setParameters(cz, kz, alphaz); // depth 
