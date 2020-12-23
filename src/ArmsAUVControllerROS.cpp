@@ -8,8 +8,12 @@
  * Copyright (c) 2020 Your Company
  */
 
+#include <stdio.h>
+#include <time.h>
 #include <vector>
 #include <assert.h>
+#include <sstream>
+#include <iomanip>
 #include "auv_controller/ArmsAUVControllerROS.h"
 
 namespace auv_controller{
@@ -31,14 +35,25 @@ namespace auv_controller{
         private_nh.param("base_frame", base_frame_, std::string("base_link"));
         private_nh.param("rpm", rpm_, 1250);
         private_nh.param("control_period", dt_, 0.1);
+        private_nh.param("record_period", rec_dt_, 1.0);
         private_nh.param("xd", x_d_, 30.0);
         private_nh.param("yd", y_d_, 10.0);
-        private_nh.param("depthd", depth_d_, 0.0);
+        private_nh.param("depthd", depth_d_, 10.0);
         double pitch_d = 0.0 * degree2rad;
         double yaw_d = 0.0 * degree2rad;
         private_nh.param("pitchd", pitch_d_, pitch_d);
         private_nh.param("yawd", yaw_d_, yaw_d);
         // private_nh.param("yawd", yaw_d_, 0.0);
+        
+        private_nh.param("rec_path", rec_path_, std::string("~/Documents/catkin_arms/src/auv_controller/data/"));
+
+        // Generate record filename according to the timestamp
+        time_t t_stamp = time(NULL);
+        struct tm* local_t = localtime(&t_stamp);
+        std::string f_name(std::to_string(local_t->tm_sec));
+        f_name += ".txt";
+        rec_path_ += f_name;
+        printf("Record path: %s", rec_path_.c_str());
 
         printf("Target:{rpm:%d ctrl_period:%f x:%f y:%f depth:%f pitch:%f yaw:%f}\n", rpm_, dt_, x_d_, y_d_, depth_d_, pitch_d_, yaw_d_);
 
@@ -100,7 +115,7 @@ namespace auv_controller{
         
         // Create control thread
         ROS_INFO("Start control thread");
-	ctrl_thread_ = new boost::thread(boost::bind(&ArmsAUVControllerROS::controlThread, this));	
+        ctrl_thread_ = new boost::thread(boost::bind(&ArmsAUVControllerROS::controlThread, this));	
     }
 
     /**
@@ -214,6 +229,32 @@ namespace auv_controller{
             boost::this_thread::sleep(boost::posix_time::milliseconds(dt_ * 1000));
         }
     } 
+
+    /**
+     * @brief Data recording thread
+     */ 
+    void ArmsAUVControllerROS::recordThread(){
+        ros::NodeHandle nh;
+        while(nh.ok()){	
+            ROS_WARN("Data recording");
+            FileWriter f_writer(rec_path_);
+            double veh_x = getX();
+            double veh_y = -getY();
+            double veh_z = -getZ();
+            
+            std::stringstream position_s;
+            position_s << std::setprecision(10) << veh_x << " " 
+                       << std::setprecision(10) << veh_y << " "
+                       << std::setprecision(10) << veh_z;
+            
+            if(!f_writer.writeData(position_s.str())){
+                ROS_ERROR("Error in data recording");
+            }
+
+            // Sleep
+            boost::this_thread::sleep(boost::posix_time::milliseconds(rec_dt_ * 1000));
+        }
+    }
 
     /**
      * @brief Apply controller output

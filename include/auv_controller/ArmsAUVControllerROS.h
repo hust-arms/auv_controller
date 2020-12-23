@@ -28,6 +28,7 @@
 #include <tf/transform_datatypes.h>
 
 #include "AUVController.h"
+#include "file_writer.h"
 
 namespace auv_controller{
     /**
@@ -50,12 +51,17 @@ namespace auv_controller{
          * @brief Timer callback
          */
         void timerCb(const ros::TimerEvent& event);
+        
+        /**
+         * @brief Control thread
+         */
+        void controlThread();
 
-	/**
-	 * @brief Control thread
-	 */
-	void controlThread();
-
+        /**
+         * @brief Data recording thread
+         */
+        void recordThread();
+        
         /**
          * @brief Apply controller output
          */ 
@@ -253,6 +259,7 @@ namespace auv_controller{
         ros::Subscriber x_d_sub_, y_d_sub_;
 
         double dt_; // control period
+        double rec_dt_; // record period
         int rpm_; // rotate per minutes of thruster
         uint32_t seq_; // header sequence
         std::string base_frame_; // base frame name of AUV
@@ -267,14 +274,17 @@ namespace auv_controller{
         double depth_d_, pitch_d_, yaw_d_; // desired parameters
         double x_d_, y_d_;
 
-	// Control thread
+	    // Control thread
         boost::thread* ctrl_thread_;
+        boost::thread* rec_thread_;
 
-	// Source lock
+	    // Source lock
         std::mutex imu_mutex_, pressure_mutex_, posegt_mutex_, dvl_mutex_;
         std::mutex depth_mutex_, pitch_mutex_, yaw_mutex_;
         std::mutex x_d_mutex_, y_d_mutex_;
 
+        // Data record path
+        std::string rec_path_;
     }; // AUVControllerROS
 }; // ns
 
