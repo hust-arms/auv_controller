@@ -82,10 +82,14 @@ add_library(${PROJECT_NAME}
   src/ArmsAUVControllerROS.cpp
 )
 
+add_library(file_writer
+  src/file_writer.cpp
+) 
+
 add_executable(armsauv_controller_test_node
   test/ArmsAUVControllerTest.cpp
 )
 
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
