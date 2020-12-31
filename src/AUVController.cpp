@@ -84,7 +84,7 @@ namespace auv_controller{
         setForceParams(38.279, -38.279, -44.981,
             41.686, -44.531, -41.686);
         setCtrlParams(0.08, 0.1, 0.6, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.1);
-
+       
         depth_sf_.init();
         horizon_sf_.init();
 
