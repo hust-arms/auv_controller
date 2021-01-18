@@ -34,17 +34,12 @@ namespace auv_controller{
         // Default parameters
         private_nh.param("base_frame", base_frame_, std::string("base_link"));
         // private_nh.param("rpm", rpm_, 1250);
-        private_nh.param("rpm", rpm_, 1250);
+        private_nh.param("rpm", rpm_, 1400);
         private_nh.param("control_period", dt_, 0.1);
         private_nh.param("record_period", rec_dt_, 1.0);
         private_nh.param("xd", x_d_, 30.0);
-<<<<<<< HEAD
         private_nh.param("yd", y_d_, 0.0);
         private_nh.param("depthd", depth_d_, 20.0);
-=======
-        private_nh.param("yd", y_d_, 10.0);
-        private_nh.param("depthd", depth_d_, 30.0);
->>>>>>> 9c8d51149aa763d2e5142ccb0929422efd9b703f
         double pitch_d = 0.0 * degree2rad;
         double yaw_d = 0.0 * degree2rad;
         private_nh.param("pitchd", pitch_d_, pitch_d);
@@ -184,7 +179,8 @@ namespace auv_controller{
                 sensor_msg.x_dot_ = getXVelocity();
                 // sensor_msg.y_dot_ = -getYVelocity();
                 sensor_msg.y_dot_ = 0.0;
-                sensor_msg.z_dot_ = -getZVelocity();
+                // sensor_msg.z_dot_ = -getZVelocity();
+                sensor_msg.z_dot_ = 0.0;
                 sensor_msg.roll_dot_ = -getRollVelocity();
                 sensor_msg.pitch_dot_ = -getPitchVelocity();
                 sensor_msg.yaw_dot_ = -getYawVelocity();
