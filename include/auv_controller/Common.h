@@ -1,29 +1,42 @@
-/*
- * Filename: Common.h
- * Path: auv_controller
- * Created Date: Tuesday, September 8th 2020, 3:09:58 pm
- * Author: zhao wang
- * 
- * Copyright (c) 2020 Your Company
- */
 #ifndef COMMON_H_
 #define COMMON_H_
 
-namespace auv_controller{
-    const u_int32_t ms = 1000;
-    const double pi = 3.1415926535;
-    const double rad2degree = 180 / pi;
-    const double degree2rad = 1 / rad2degree;
+#include <math.h>
+#include <string>
+#include <iostream>
+#include <exception>
 
-    /**
-     * @brief Data of sensors
-     */ 
-    struct AUVKineticSensor{
-        double x_, y_, z_;
-        double roll_, pitch_, yaw_;
-        double x_dot_, y_dot_, z_dot_;
-        double roll_dot_, pitch_dot_, yaw_dot_;
-    }; // SensorData
-}; // ns
+void rawPrint(const std::string& input);
+
+template<typename T>
+void contentPrint(const std::string& print_head, const T& input){
+    try{
+        std::cout << "[" << print_head << "]:" << input << std::endl;
+    }
+    catch(std::exception& ex){
+        std::cout << "Print error: " << ex.what() << std::endl;
+    }
+}
+
+/**
+ * @brief Filter function
+ */
+int sign(double input){
+    if(input > 0){
+        return 1;
+    }
+    else if (input < 0){
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+};
+
+double sat(double input, double thick){                                                
+    return fabs(input) >= thick ? sign(input) : (input / thick);
+};
+
 
 #endif

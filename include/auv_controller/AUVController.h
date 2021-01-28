@@ -16,8 +16,7 @@
 #include "ForceParams.h"
 #include "CtrlParams.h"
 #include "Dynamic.h"
-#include "Common.h"
-
+#include "AUVCommon.h" 
 namespace auv_controller{
     // Pre determination
     class AUVController;
@@ -131,11 +130,7 @@ namespace auv_controller{
         {
             force_.setParameters(yuudr, zuuds, zuudb, muuds, muudb, nuudr);
         };
-
-        /**
-         * @brief Set force parameters
-         */ 
-        bool setForceParams(const std::vector<double>& force);
+/** * @brief Set force parameters */ bool setForceParams(const std::vector<double>& force);
 
         /**
          * @brief Control solution

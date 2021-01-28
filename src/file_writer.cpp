@@ -1,6 +1,6 @@
 #include <auv_controller/file_writer.h>
 #include <ios>
-#include <auv_controller/common.h>
+#include <auv_controller/Common.h>
 
 FileWriter::FileWriter(const std::string& filename, const std::string& path) : filename_(filename), path_(path)
 {

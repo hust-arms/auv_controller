@@ -45,6 +45,7 @@ namespace auv_controller{
     struct CtrlParams{
         CtrlVar z_;
         CtrlVar theta_;
+        CtrlVar y_;
         CtrlVar psi_;
         double bondary_thick_;
     }; // CtrlParams
@@ -75,6 +76,7 @@ namespace auv_controller{
     struct CtrlMissionParams{
         CtrlMissionVar z_;
         CtrlMissionVar theta_;
+        CtrlMissionVar y_;
         CtrlMissionVar psi_;
         double lateral_dist_;
     }; // CtrlMissionParams
