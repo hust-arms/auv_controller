@@ -82,9 +82,14 @@ add_library(${PROJECT_NAME}
   src/ArmsAUVControllerROS.cpp
 )
 
-add_library(auv_controller_with_fb_fins
+add_library(auv_controller_with_front_fins
   src/AUVBaseController.cpp
-  src/AUVControllerWithFB.cpp
+  src/AUVControllerWithFF.cpp
+)
+
+add_library(auv_controller_no_front_fins
+  src/AUVBaseController.cpp
+  src/AUVControllerNoFF.cpp
 )
 
 add_library(file_writer
