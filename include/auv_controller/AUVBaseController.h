@@ -108,7 +108,7 @@ public:
     /**
      * @brief Set control parameters
      */ 
-     bool setCtrlParams(const std::vector<double>& ctrl);
+    bool setCtrlParams(const std::vector<double>& ctrl);
     
     /**
      * @brief Set control parameters
@@ -141,7 +141,6 @@ public:
      */
     virtual void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt) = 0;
 
-protected:
     /**
      * @brief Serialize auv body parameters
      */
@@ -162,10 +161,32 @@ protected:
      */
     virtual void serializeAUVControlParams(std::stringstream& str);
 
+protected:
     /**
      * @brief Initialize with default parameters
      */
     virtual void defaultInit();
+
+    /**
+     * @brief Filter function
+     */
+    int sign(double input){
+        if(input > 0){
+            return 1;
+        }
+        else if (input < 0){
+            return -1;
+        }
+        else
+        {
+            return 0;
+        }
+    };
+    
+    double sat(double input, double thick){
+        return fabs(input) >= thick ? sign(input) : (input / thick);
+    };
+
 
 protected:
     /**

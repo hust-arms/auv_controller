@@ -18,25 +18,5 @@ void contentPrint(const std::string& print_head, const T& input){
     }
 }
 
-/**
- * @brief Filter function
- */
-int sign(double input){
-    if(input > 0){
-        return 1;
-    }
-    else if (input < 0){
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-};
-
-double sat(double input, double thick){                                                
-    return fabs(input) >= thick ? sign(input) : (input / thick);
-};
-
 
 #endif
