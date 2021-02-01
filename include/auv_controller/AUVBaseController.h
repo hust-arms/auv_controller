@@ -103,6 +103,7 @@ public:
      */
     void setCtrlParams(double cz, double kz, double alphaz,
         double ctheta, double ktheta, double alphatheta,
+        double cy, double ky, double alphay,
         double cpsi, double kpsi, double alphapsi, double bt);
 
     /**
@@ -255,7 +256,7 @@ protected:
     // Const value
     const unsigned int body_num_ = 13;
     const unsigned int dynamic_num_ = 28;
-    const unsigned int ctrl_num_ = 10;
+    const unsigned int ctrl_num_ = 13;
     const unsigned int force_num_ = 6;
 
 }; // AUVBaseController

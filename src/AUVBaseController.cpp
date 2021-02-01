@@ -50,10 +50,11 @@ bool AUVBaseController::setAUVDynamic(const std::vector<double>& dynamic){
  * @brief Set control parameters
  */
 void AUVBaseController::setCtrlParams(double cz, double kz, double alphaz, double ctheta, double ktheta, double alphatheta,
-        double cpsi, double kpsi, double alphapsi, double bt)
+        double cy, double ky, double alphay, double cpsi, double kpsi, double alphapsi, double bt)
 {
     ctrl_.z_.setParameters(cz, kz, alphaz); // depth
     ctrl_.theta_.setParameters(ctheta, ktheta, alphatheta); // pitch
+    ctrl_.y_.setParameters(cy, ky, alphay); // y
     ctrl_.psi_.setParameters(cpsi, kpsi, alphapsi); // yaw
     ctrl_.bondary_thick_ = bt;
 };
@@ -64,7 +65,7 @@ void AUVBaseController::setCtrlParams(double cz, double kz, double alphaz, doubl
  */
 bool AUVBaseController::setCtrlParams(const std::vector<double>& ctrl){
     if(ctrl.size() == ctrl_num_){
-        setCtrlParams(ctrl[0], ctrl[1], ctrl[2], ctrl[3], ctrl[4], ctrl[5], ctrl[6], ctrl[7], ctrl[8], ctrl[9]);
+        setCtrlParams(ctrl[0], ctrl[1], ctrl[2], ctrl[3], ctrl[4], ctrl[5], ctrl[6], ctrl[7], ctrl[8], ctrl[9], ctrl[10], ctrl[11], ctrl[12]);
         return true;
     }
     else{
@@ -86,6 +87,8 @@ void AUVBaseController::setCtrlParams(double c, double k, double alpha, unsigned
         ctrl_.theta_.setParameters(c, k, alpha);
         break;
     case 2:
+        ctrl_.y_.setParameters(c, k, alpha);
+    case 3:
         ctrl_.psi_.setParameters(c, k, alpha);
         break;
     default:
@@ -117,8 +120,8 @@ void AUVBaseController::defaultInit(){
         140.68, 73, -57.47, -50.3);
     setForceParams(38.279, -38.279, -44.981,
         41.686, -44.531, -41.686);
-    // setCtrlParams(0.08, 0.1, 0.6, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.1);
-    setCtrlParams(0.1, 0.1, 0.1, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.1);
+    // setCtrlParams(0.1, 0.1, 0.1, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.8, 0.8, 0.1, 0.1); // with front fins
+    setCtrlParams(0.5, 0.5, 0.1, 0.5, 0.5, 0.1, 0.5, 0.5, 0.1, 0.8, 0.8, 0.1, 0.1); // without front fins
 
     depth_sf_.init();
     horizon_sf_.init();
@@ -135,6 +138,12 @@ void AUVBaseController::defaultInit(){
     mission_.theta_.ref_dot2_ = 0.0;
     mission_.theta_.pre_ref_ = 0.0;
     mission_.theta_.pre_ref_dot_ = 0.0;
+
+    mission_.y_.ref_ = 0.0;
+    mission_.y_.ref_dot_ = 0.0;
+    mission_.y_.ref_dot2_ = 0.0;
+    mission_.y_.pre_ref_ = 0.0;
+    mission_.y_.pre_ref_dot_ = 0.0;
 
     mission_.psi_.ref_ = 0.0;
     mission_.psi_.ref_dot_ = 0.0;
@@ -181,6 +190,7 @@ void AUVBaseController::serializeAUVForceParams(std::stringstream& str){
 void AUVBaseController::serializeAUVControlParams(std::stringstream& str){
     str << "cz: " << ctrl_.z_.c_ << " kz: " << ctrl_.z_.k_ << " alphaz: " << ctrl_.z_.alpha_;
     str << " ctheta: " << ctrl_.theta_.c_ << " ktheta: " << ctrl_.theta_.k_ << " alphatheta: " << ctrl_.theta_.alpha_;
+    str << " cy: " << ctrl_.y_.c_ << " ky: " << ctrl_.y_.k_ << " alphay: " << ctrl_.y_.alpha_;
     str << " cpsi: " << ctrl_.psi_.c_ << " kpsi: " << ctrl_.psi_.k_ << " alphapsi: " << ctrl_.psi_.alpha_;
     str << " boundary thick: " << ctrl_.bondary_thick_;
 }
