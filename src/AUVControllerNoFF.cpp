@@ -18,7 +18,7 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     // Update kinetic parameters
     this->kinetic_.setPosition(sensor.x_, sensor.y_, sensor.z_, sensor.roll_, sensor.pitch_, sensor.yaw_);
     this->kinetic_.setVelocity(sensor.x_dot_, sensor.y_dot_, sensor.z_dot_, sensor.roll_dot_, sensor.pitch_dot_, sensor.yaw_dot_);
-    
+
     // Draw and compute control mission parameters
     this->mission_.z_.ref_ = input.depth_d_;
     this->mission_.z_.ref_dot_ = 0.0;
@@ -38,7 +38,8 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     this->mission_.y_.ref_dot2_ = 0.0;
     this->mission_.y_.Update();
     
-    this->mission_.psi_.ref_ = input.yaw_d_ + 0.1 * atan((this->kinetic_.y_ - this->mission_.y_.ref_) / (4 * this->body_.l_));
+    // this->mission_.psi_.ref_ = input.yaw_d_ + 0.1 * atan((this->kinetic_.y_ - this->mission_.y_.ref_) / (4 * this->body_.l_));
+    this->mission_.psi_.ref_ = input.yaw_d_ + atan(mission_.lateral_dist_ / (4 * this->body_.l_));
     this->mission_.psi_.ref_dot_ = (this->mission_.psi_.ref_ - this->mission_.psi_.pre_ref_) / dt;
     this->mission_.psi_.ref_dot2_ = (this->mission_.psi_.ref_dot_ - this->mission_.psi_.pre_ref_dot_) / dt;
     this->mission_.psi_.Update();
@@ -129,7 +130,7 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     this->horizon_sf_.g_p_ = this->horizon_sf_.b_p_;
     this->horizon_sf_.g_pdr_ = this->horizon_sf_.b_pdr_;
     
-    // Update dot z & dot pitch
+    // Update dot y & dot yaw
     this->horizon_sf_.dot_y_ = this->kinetic_.u_ * sin(this->kinetic_.psi_) + this->kinetic_.v_ * cos(this->kinetic_.psi_);
     this->horizon_sf_.dot_psi_ = this->kinetic_.r_;
 
@@ -158,15 +159,17 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
         this->ctrl_.theta_.k_ * pow(fabs(this->slide_model_.theta_.s_), this->ctrl_.theta_.alpha_) * sat(this->slide_model_.theta_.s_, this->ctrl_.bondary_thick_);
     this->slide_model_.y_.l_ = this->mission_.y_.ref_dot2_ - this->horizon_sf_.g_y_ - this->ctrl_.y_.c_ * this->slide_model_.y_.dot_e_ -
         this->ctrl_.y_.k_ * pow(fabs(this->slide_model_.y_.s_), this->ctrl_.y_.alpha_) * sat(this->slide_model_.y_.s_, this->ctrl_.bondary_thick_);
-    this->slide_model_.psi_.l_ = this->mission_.psi_.ref_dot2_ - this->horizon_sf_.b_p_ - this->ctrl_.psi_.c_ * this->slide_model_.psi_.dot_e_ -
+    this->slide_model_.psi_.l_ = this->mission_.psi_.ref_dot2_ - this->horizon_sf_.g_p_ - this->ctrl_.psi_.c_ * this->slide_model_.psi_.dot_e_ -
         this->ctrl_.psi_.k_ * pow(fabs(this->slide_model_.psi_.s_), this->ctrl_.psi_.alpha_) * sat(this->slide_model_.psi_.s_, this->ctrl_.bondary_thick_);
 
     // Caculate target rudder angle
     double deno_depth_ctrl = this->depth_sf_.g_zs_ - this->depth_sf_.g_ts_;
     this->deltas_ = (this->slide_model_.z_.l_- this->slide_model_.theta_.l_) / deno_depth_ctrl;
 
-    double deno_lateral_ctrl = this->horizon_sf_.g_ydr_ - this->horizon_sf_.g_pdr_;
-    this->deltar_ = (this->slide_model_.y_.l_ - this->slide_model_.psi_.l_) / deno_lateral_ctrl;
+    // double deno_lateral_ctrl = this->horizon_sf_.g_ydr_ - this->horizon_sf_.g_pdr_;
+    // this->deltar_ = (this->slide_model_.y_.l_ - this->slide_model_.psi_.l_) / deno_lateral_ctrl;
+    double deno_lateral_ctrl = this->horizon_sf_.g_pdr_;
+    this->deltar_ = this->slide_model_.psi_.l_ / deno_lateral_ctrl;
 
     this->deltab_ = 0;
     if(fabs(this->deltas_) > 30 / 57.3){
@@ -177,7 +180,7 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     }
   
     // Print control value of forward, afterward and orientation rouder
-    printf("afterward fin: %f vertical fin: %f", this->deltas_, this->deltar_);
+    printf("afterward fin: %f vertical fin: %f\n", this->deltas_, this->deltar_);
     output.fwd_fin_ = this->deltab_;
     output.aft_fin_ = this->deltas_;
     output.rouder_ = this->deltar_;

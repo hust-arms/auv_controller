@@ -160,7 +160,7 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
         this->ctrl_.theta_.k_ * pow(fabs(this->slide_model_.theta_.s_), this->ctrl_.theta_.alpha_) * sat(this->slide_model_.theta_.s_, this->ctrl_.bondary_thick_);
     this->slide_model_.y_.l_ = this->mission_.y_.ref_dot2_ - this->horizon_sf_.g_y_ - this->ctrl_.y_.c_ * this->slide_model_.y_.dot_e_ -
         this->ctrl_.y_.k_ * pow(fabs(this->slide_model_.y_.s_), this->ctrl_.y_.alpha_) * sat(this->slide_model_.y_.s_, this->ctrl_.bondary_thick_);
-    this->slide_model_.psi_.l_ = this->mission_.psi_.ref_dot2_ - this->horizon_sf_.b_p_ - this->ctrl_.psi_.c_ * this->slide_model_.psi_.dot_e_ -
+    this->slide_model_.psi_.l_ = this->mission_.psi_.ref_dot2_ - this->horizon_sf_.g_p_ - this->ctrl_.psi_.c_ * this->slide_model_.psi_.dot_e_ -
         this->ctrl_.psi_.k_ * pow(fabs(this->slide_model_.psi_.s_), this->ctrl_.psi_.alpha_) * sat(this->slide_model_.psi_.s_, this->ctrl_.bondary_thick_);
 
     // Command computation
@@ -168,7 +168,8 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     // printf("Temp:{g_zb:%f g_ts:%f g_tb:%f g_zs:%f}\n", this->depth_sf_.g_zb_, this->depth_sf_.g_ts_, this->depth_sf_.g_tb_, this->depth_sf_.g_zs_);
     this->deltab_ = (this->slide_model_.z_.l_ * this->depth_sf_.g_ts_ - this->slide_model_.theta_.l_ * this->depth_sf_.g_zs_) / common3;
     this->deltas_ = (this->slide_model_.theta_.l_ * this->depth_sf_.g_zb_ - this->slide_model_.z_.l_ * this->depth_sf_.g_tb_) / common3;
-    this->deltar_ = (this->slide_model_.y_.l_ - this->slide_model_.psi_.l_) / (this->horizon_sf_.g_ydr_ - this->horizon_sf_.g_pdr_);
+    // this->deltar_ = (this->slide_model_.y_.l_ - this->slide_model_.psi_.l_) / (this->horizon_sf_.g_ydr_ - this->horizon_sf_.g_pdr_);
+    this->deltar_ = this->slide_model_.psi_.l_ / this->horizon_sf_.g_pdr_;
 
     if(fabs(this->deltab_) > 30 / 57.3){
         this->deltab_ = (30 / 57.3) * sign(this->deltab_);
@@ -181,7 +182,7 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     }
 
     // Print control value of forward, afterward and orientation rouder
-    printf("forward fin: %f afterward fin: %f rouder: %f", this->deltab_, this->deltas_, this->deltar_);
+    printf("forward fin: %f afterward fin: %f rouder: %f\n", this->deltab_, this->deltas_, this->deltar_);
     output.fwd_fin_ = this->deltab_;
     output.aft_fin_ = this->deltas_;
     output.rouder_ = this->deltar_;
