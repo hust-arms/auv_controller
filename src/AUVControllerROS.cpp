@@ -23,22 +23,22 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
    
    // Parameters setting
    std::vector<double> dynamic, body_params, ctrl_params, force_params;
-   private_nh.getParam("dynamic params", dynamic);
-   private_nh.getParam("force params", force_params);
-   private_nh.getParam("control params", ctrl_params);
-   private_nh.getParam("body params", body_params);
+   private_nh.getParam("dynamic_params", dynamic);
+   private_nh.getParam("force_params", force_params);
+   private_nh.getParam("control_params", ctrl_params);
+   private_nh.getParam("body_params", body_params);
 
    // Default parameters
-   private_nh.param("base frame", base_frame_, std::string("base_link"));
+   private_nh.param("base_frame", base_frame_, std::string("base_link"));
    private_nh.param("rpm", rpm_, 1400);
-   private_nh.param("control period", ctrl_dt_, 0.1);
-   private_nh.param("publish period", pub_dt_, 0.1);
-   private_nh.param("desird y", y_d_, 0.0);
-   private_nh.param("desired depth", depth_d_, 20.0);
+   private_nh.param("control_period", ctrl_dt_, 0.1);
+   private_nh.param("publish_period", pub_dt_, 0.1);
+   private_nh.param("desired_y", y_d_, 10.0);
+   private_nh.param("desired_depth", depth_d_, 20.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
-   private_nh.param("desired pitch", pitch_d_, pitch_d);
-   private_nh.param("desired yaw", yaw_d_, yaw_d);
+   private_nh.param("desired_pitch", pitch_d_, pitch_d);
+   private_nh.param("desired_yaw", yaw_d_, yaw_d);
 
    // Initialization of publisher and subscriber
    imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
@@ -57,9 +57,11 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
 
    /* initialize controller */
    if (with_ff){
+       ROS_INFO("Model with front fins");
        controller_ = new AUVControllerWithFF();
    }
    else{
+       ROS_INFO("Model without front fins");
        controller_ = new AUVControllerNoFF();
    }
 
@@ -128,13 +130,11 @@ void AUVControllerROS::controlThread(){
     while(nh.ok()){
         while(wait_for_wake || !is_ctrl_run_){
             if(debug_){
-                {
-                    std::lock_guard<std::mutex> guard(print_mutex_);
-                    printf("Control thread is suspending\n");
-                }
-                ctrl_cond_.wait(lock);
-                wait_for_wake = false;
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("Control thread is suspending\n");
             }
+            ctrl_cond_.wait(lock);
+            wait_for_wake = false;
         }
         // control thread wake
         if(debug_){
@@ -171,7 +171,7 @@ void AUVControllerROS::controlThread(){
         }
 
         // Create Controller input
-        AUVControllerInput input(getDesiredDepth(), getDesiredPitch(), getDesiredYaw(), 30.0, getDesiredY());
+        AUVControllerInput input(getDesiredDepth(), getDesiredPitch(), getDesiredYaw(), 30.0, -getDesiredY());
 
         // Print control input
         if(debug_){
@@ -193,6 +193,8 @@ void AUVControllerROS::controlThread(){
             fwdfin_ = output.fwd_fin_;
             backfin_ = output.aft_fin_;
         }
+
+        lock.lock();
 
         if(ctrl_dt_ > 0.0){
             ros::Duration sleep_time = (ctrl_start_t + ros::Duration(ctrl_dt_)) - ros::Time::now();
@@ -232,7 +234,7 @@ void AUVControllerROS::publishThread(){
 
         {
             std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f}", vertfin, fwdfin, backfin);
+            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f\n}", vertfin, fwdfin, backfin);
         }
 
         // publish control output
@@ -277,14 +279,14 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
     else{
         // Vertical fins
         fins_msg.data = vertfin;
-        fin3_pub_.publish(fins_msg);
+        fin1_pub_.publish(fins_msg);
         fins_msg.data = -vertfin;
-        fin5_pub_.publish(fins_msg);
+        fin3_pub_.publish(fins_msg);
         // Backward fins
         fins_msg.data = -backfin;
-        fin2_pub_.publish(fins_msg);
+        fin0_pub_.publish(fins_msg);
         fins_msg.data = backfin;
-        fin4_pub_.publish(fins_msg);
+        fin2_pub_.publish(fins_msg);
     }
 }
 
