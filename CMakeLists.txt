@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   tf
   uuv_gazebo_ros_plugins_msgs
+  armsauv_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -82,14 +83,12 @@ add_library(${PROJECT_NAME}
   src/ArmsAUVControllerROS.cpp
 )
 
-add_library(auv_controller_with_front_fins
+add_library(auv_base_controller
+  src/Common.cpp
   src/AUVBaseController.cpp
   src/AUVControllerWithFF.cpp
-)
-
-add_library(auv_controller_no_front_fins
-  src/AUVBaseController.cpp
   src/AUVControllerNoFF.cpp
+  src/AUVControllerROS.cpp
 )
 
 add_library(file_writer
@@ -100,6 +99,14 @@ add_executable(armsauv_controller_test_node
   test/ArmsAUVControllerTest.cpp
 )
 
+add_executable(auv_controller_test_node
+  test/AUVControllerTest.cpp
+)
+
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
