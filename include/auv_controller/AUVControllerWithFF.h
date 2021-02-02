@@ -34,7 +34,7 @@ public:
     /**
      * @brief Implementation of controller
      */ 
-    virtual void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt) override;
+    virtual void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt, bool ctrl_vel) override;
 
 }; // AUVControllerWithFF
 };  // ns

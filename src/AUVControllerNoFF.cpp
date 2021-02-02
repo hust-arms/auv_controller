@@ -14,7 +14,7 @@ namespace auv_controller{
 /**
  * @brief Control solution
  */
-void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt){
+void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt, bool vel_ctrl){
     // Update kinetic parameters
     this->kinetic_.setPosition(sensor.x_, sensor.y_, sensor.z_, sensor.roll_, sensor.pitch_, sensor.yaw_);
     this->kinetic_.setVelocity(sensor.x_dot_, sensor.y_dot_, sensor.z_dot_, sensor.roll_dot_, sensor.pitch_dot_, sensor.yaw_dot_);
@@ -184,6 +184,23 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     output.fwd_fin_ = this->deltab_;
     output.aft_fin_ = this->deltas_;
     output.rouder_ = this->deltar_;
+
+    if(vel_ctrl){
+        double u_d = input.u_d_;
+        // double th_d = -(this->dynamic_.z_dotw_ * (this->kinetic_.w_ + this->kinetic_.q_) * this->kinetic_.q_ - 
+        //      (this->dynamic_.y_dotv_ + this->dynamic_.y_dotr_) * this->kinetic_.r_ + this->dynamic_.x_uu_ * this->kinetic_.u_ * abs(this->kinetic_.u_) -
+        //      (this->body_.w_ - this->body_.b_) * sin(this->kinetic_.theta_)); 
+        double th_d = -this->dynamic_.x_uu_ * u_d * abs(u_d);
+
+        double rpm_d;
+        if(u_d > 0){
+            rpm_d = (th_d - this->th_.sigma_) / this->th_.c_t_ + this->th_.r_death_area_;
+        }
+        else{
+            rpm_d = -((abs(th_d) - this->th_.sigma_) / this->th_.c_t_ + abs(this->th_.l_death_area_));
+        }
+        output.rpm_ = rpm_d;
+    }
 }
 
 }; // ns

@@ -120,6 +120,8 @@ void AUVBaseController::defaultInit(){
         140.68, 73, -57.47, -50.3);
     setForceParams(38.279, -38.279, -44.981,
         41.686, -44.531, -41.686);
+    // setThrusterFactor(2.4e-5, 888.0, -888.0, -1.0);
+    setThrusterFactor(0.0875, 888.0, -888.0, -1.0);
     // setCtrlParams(0.1, 0.1, 0.1, 0.1, 0.1, 0.6, 0.8, 0.8, 0.1, 0.8, 0.8, 0.1, 0.1); // with front fins
     setCtrlParams(0.5, 0.5, 0.1, 0.5, 0.5, 0.1, 0.5, 0.5, 0.1, 0.8, 0.8, 0.1, 0.1); // without front fins
 

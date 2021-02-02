@@ -28,14 +28,15 @@ struct AUVControllerInput{
     /**
      * @brief Constructor
      */
-    AUVControllerInput(double depthd, double pitchd, double yawd, double xd, double yd) :
-        depth_d_(depthd), pitch_d_(pitchd), yaw_d_(yawd), x_d_(xd), y_d_(yd){};
+    AUVControllerInput(double depthd, double pitchd, double yawd, double xd, double yd, double ud) :
+        depth_d_(depthd), pitch_d_(pitchd), yaw_d_(yawd), x_d_(xd), y_d_(yd), u_d_(ud){};
 
     double depth_d_; // desired depth
     double pitch_d_; // desired pitch
     double yaw_d_; // desired yaw
     double x_d_; // waypoint on the desired line
     double y_d_; // waypoint on the desired line
+    double u_d_; // desired linear x velocity
 }; //  AUVControllerInput
 
 /**
@@ -45,6 +46,7 @@ struct AUVControllerOutput{
     double rouder_;
     double fwd_fin_;
     double aft_fin_;
+    double rpm_;
 }; // AUVControllerOutput
 
 
@@ -130,6 +132,14 @@ public:
     {
         force_.setParameters(yuudr, zuuds, zuudb, muuds, muudb, nuudr);
     };
+
+    /**
+     * @brief Set factor of thruster
+     * @param c_t Thruster factor
+     */ 
+    void setThrusterFactor(double c_t, double r_death_area, double l_death_area, double sigma){
+        th_.setParameters(c_t, r_death_area, l_death_area, sigma);
+    };
     
     /**
      * @brief Set force parameters
@@ -140,7 +150,7 @@ public:
     /**
      * @brief Control solution
      */
-    virtual void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt) = 0;
+    virtual void controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt, bool vel_ctrl) = 0;
 
     /**
      * @brief Serialize auv body parameters
@@ -249,6 +259,8 @@ protected:
     
     AUVDepthSFStatus depth_sf_;
     AUVHorizonSFStatus horizon_sf_;
+
+    ThrusterDynamic th_;
     
     // Commands
     double deltab_, deltas_, deltar_;
