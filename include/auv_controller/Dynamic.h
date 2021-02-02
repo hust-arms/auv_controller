@@ -57,6 +57,20 @@ namespace auv_controller{
             m_uw_ = muw; m_uq_ = muq; n_uv_ = nuv; n_ur_ = nur;
         }
     }; // AUVDynamic
+
+    struct ThrusterDynamic{
+        double c_t_; 
+        double l_death_area_;
+        double r_death_area_;
+        double sigma_;
+
+        void setParameters(double c_t, double r_l, double l_l, double sigma){
+            c_t_ = c_t;
+            r_death_area_ = r_l;
+            l_death_area_ = l_l;
+            sigma_ = sigma;
+        }
+    }; // ThrusterDynamic
 }; // ns
 
 #endif
