@@ -89,11 +89,16 @@ add_library(auv_base_controller
   src/AUVControllerWithFF.cpp
   src/AUVControllerNoFF.cpp
   src/AUVControllerROS.cpp
+  src/PIDController.cpp
 )
 
 add_library(file_writer
   src/file_writer.cpp
 ) 
+
+add_library(pid_factory
+  src/PIDController.cpp
+)
 
 add_executable(armsauv_controller_test_node
   test/ArmsAUVControllerTest.cpp
