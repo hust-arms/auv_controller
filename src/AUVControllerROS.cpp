@@ -30,7 +30,7 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
 
    // Default parameters
    private_nh.param("base_frame", base_frame_, std::string("base_link"));
-   private_nh.param("rpm", rpm_, 1400);
+   private_nh.param("rpm", rpm_, 1400.0);
    private_nh.param("control_period", ctrl_dt_, 0.1);
    private_nh.param("publish_period", pub_dt_, 0.1);
    private_nh.param("desired_y", y_d_, 10.0);
@@ -39,6 +39,17 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
    double yaw_d = 0.0 * degree2rad;
    private_nh.param("desired_pitch", pitch_d_, pitch_d);
    private_nh.param("desired_yaw", yaw_d_, yaw_d);
+
+   double kp, ki, kd, c_t, r_l, l_l, sigma;
+   private_nh.param("kp", kp, 1.0);
+   private_nh.param("ki", ki, 0.0);
+   private_nh.param("kd", kd, 0.1);
+   private_nh.param("desired_u", u_d_, 1.5432);
+   // private_nh.param("Ct", c_t, 2.4e-5);
+   private_nh.param("Ct", c_t, 0.0875);
+   private_nh.param("r_death_area", r_l, 888.0);
+   private_nh.param("l_death_area", l_l, -888.0);
+   private_nh.param("sigma", sigma, -1.0);
 
    // Initialization of publisher and subscriber
    imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
@@ -82,6 +93,7 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
        ROS_WARN("Error in AUV force parameters setting! Use default settings!");
        printAUVForceParams(); // print force parameters
    }
+   controller_->setThrusterFactor(c_t, r_l, l_l, sigma);
 
    fwdfin_ = 0.0; backfin_ = 0.0; vertfin_ = 0.0; 
 
@@ -171,20 +183,25 @@ void AUVControllerROS::controlThread(){
         }
 
         // Create Controller input
-        AUVControllerInput input(getDesiredDepth(), getDesiredPitch(), getDesiredYaw(), 30.0, -getDesiredY());
+        AUVControllerInput input(getDesiredDepth(), getDesiredPitch(), getDesiredYaw(), 30.0, -getDesiredY(), getDesiredLinVelX());
 
         // Print control input
         if(debug_){
             std::lock_guard<std::mutex> guard(print_mutex_);
-            std::cout << "Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ << " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "}" << std::endl; 
+            std::cout << "Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
+                " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "desired u:" << u_d_ << "}" << std::endl; 
         }
 
         AUVControllerOutput output;
-        output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rouder_ = 0.0;
+        output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rouder_ = 0.0; 
         
 
-        bool get_ctrl_output = false;
-        controller_->controllerRun(sensor_msg, input, output, ctrl_dt_);
+        bool get_ctrl_output = false, ctrl_vel = false;
+        if(isStable()){
+            ctrl_vel = true;
+        }
+        controller_->controllerRun(sensor_msg, input, output, ctrl_dt_, ctrl_vel);
+
         get_ctrl_output = nh.ok();
 
         if(get_ctrl_output){
@@ -192,6 +209,13 @@ void AUVControllerROS::controlThread(){
             vertfin_ = output.rouder_;
             fwdfin_ = output.fwd_fin_;
             backfin_ = output.aft_fin_;
+            if(ctrl_vel){
+                rpm_ = output.rpm_;
+                if(debug_){
+                    std::lock_guard<std::mutex> guard(print_mutex_);
+                    printf("RPM: %f\n", rpm_);
+                }
+            }
         }
 
         lock.lock();
@@ -234,7 +258,7 @@ void AUVControllerROS::publishThread(){
 
         {
             std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f\n}", vertfin, fwdfin, backfin);
+            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f\n}", vertfin, fwdfin, backfin, rpm);
         }
 
         // publish control output
@@ -244,7 +268,7 @@ void AUVControllerROS::publishThread(){
     };
 }
 
-void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double backfin, int rpm){
+void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double backfin, double rpm){
     std_msgs::Header header;
     header.stamp.setNow(ros::Time::now());
     header.frame_id = base_frame_;
@@ -288,6 +312,19 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
         fins_msg.data = backfin;
         fin2_pub_.publish(fins_msg);
     }
+}
+
+bool AUVControllerROS::isStable(){
+    double cur_depth = -getGlobalZ();
+    double cur_y = getGlobalY();
+    double cur_pitch = getAngVelPitch();
+    double cur_yaw = getAngVelYaw();
+    if(abs(depth_d_ - cur_depth) < 0.3 && abs(y_d_ - cur_y) < 0.3 
+        && abs(yaw_d_ - cur_yaw) < 0.04363 && abs(pitch_d_ - cur_pitch) < 0.04363)
+    {
+        return true;
+    }
+    return false;
 }
 
 void AUVControllerROS::imuCb(const sensor_msgs::Imu::ConstPtr& msg) 

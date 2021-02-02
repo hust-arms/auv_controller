@@ -37,7 +37,7 @@
 #include "AUVControllerWithFF.h"
 #include "AUVControllerNoFF.h"
 #include "file_writer.h"
-
+#include "PIDController.h"
 
 namespace auv_controller{
 /**
@@ -79,7 +79,12 @@ private:
     /**
      * @brief 
      */
-    void applyActuatorInput(double rouder, double fwdfin, double backfin, int rpm);
+    void applyActuatorInput(double rouder, double fwdfin, double backfin, double rpm);
+
+    /**
+     * @brief Return true if status of AUV is stable
+     */
+    bool isStable();
 
     /* Desired params interface */
     /**
@@ -112,6 +117,14 @@ private:
     double getDesiredYaw(){
         std::lock_guard<std::mutex> guard(desired_mutex_);
         return yaw_d_;
+    }
+
+    /**
+     * @brief Return desired x linear velocity
+     */
+    double getDesiredLinVelX(){
+        std::lock_guard<std::mutex> guard(desired_mutex_);
+        return u_d_;
     }
     
     /* States output interface */
@@ -210,7 +223,7 @@ private:
         std::lock_guard<std::mutex> guard(imu_mutex_);
         return yaw_dot_;
     }
-    
+
     /* Sensors callback func */
     /**
      * @brief IMU data input  
@@ -235,7 +248,7 @@ private:
     /**
      * @brief Desired input 
      */
-    void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
+    // void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
 
     /* Debug interface */
     /**
@@ -272,6 +285,7 @@ private:
 private:
     /* Controller */
     AUVBaseController* controller_;
+    PIDControllerPtr u_controller_;
 
     /* ROS components */
     ros::Publisher fin0_pub_, fin1_pub_, fin2_pub_, fin3_pub_, fin4_pub_, fin5_pub_;
@@ -298,10 +312,11 @@ private:
     double roll_dot_, pitch_dot_, yaw_dot_; // angular velocity in vehicle frame
 
     double depth_d_, pitch_d_, y_d_, yaw_d_; // desired params
+    double u_d_;
 
     /* Controll var */
     double fwdfin_, backfin_, vertfin_;
-    int rpm_;
+    double rpm_;
 
     /* Threads */
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
