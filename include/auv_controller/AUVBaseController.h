@@ -134,6 +134,16 @@ public:
     };
 
     /**
+     * @brief Set X force parameters
+     */
+    void setXForceParams(double ydup, double ydus, double ydlp, double ydls, double zdup, double zdus, double zdlp, double zdls,
+                         double mdup, double mdus, double mdlp, double mdls, double ndup, double ndus, double ndlp, double ndls)
+    {
+        xforce_.setParameters(ydup, ydus, ydlp, ydls, zdup, zdus, zdlp, zdls,
+                              mdup, mdus, mdlp, mdls, ndup, ndus, ndlp, ndls);
+    }
+
+    /**
      * @brief Set factor of thruster
      * @param c_t Thruster factor
      */ 
@@ -145,6 +155,11 @@ public:
      * @brief Set force parameters
      */ 
     bool setForceParams(const std::vector<double>& force);
+
+    /**
+     * @brief Set X force parameters
+     */ 
+    bool setXForceParams(const std::vector<double>& force);
 
 
     /**
@@ -252,6 +267,8 @@ protected:
     AUVDynamic dynamic_;
     ForceParams force_;
     CtrlParams ctrl_;
+
+    XForceParams xforce_;
     
     AUVKinetic kinetic_;
     CtrlMissionParams mission_;
@@ -270,6 +287,8 @@ protected:
     const unsigned int dynamic_num_ = 28;
     const unsigned int ctrl_num_ = 13;
     const unsigned int force_num_ = 6;
+    
+    const unsigned int xforce_num_ = 16; // hydrodynamic params for X type rouder
 
 }; // AUVBaseController
 }; // ns

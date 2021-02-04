@@ -108,6 +108,19 @@ bool AUVBaseController::setForceParams(const std::vector<double>& force){
 }
 
 /**
+ * @brief Set X force parameters
+ */ 
+bool AUVBaseController::setXForceParams(const std::vector<double>& force);{
+    if(force.size() == xforce_num_){
+        setXForceParams(force[0], force[1], force[2], force[3], force[4], force[5], force[6], force[7],
+                        force[8], force[9], force[10], force[11], force[12], force[13], force[14], force[15]);
+        return true;
+    }
+    return false;
+}
+
+
+/**
  * @brief Initialize with default paramters
  */
 void AUVBaseController::defaultInit(){
