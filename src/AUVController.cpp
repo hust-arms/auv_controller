@@ -354,11 +354,11 @@ namespace auv_controller{
             deltar_ = (30 / 57.3) * sign(deltar_);
         }
 
-        // Print control value of forward, afterward and orientation rouder
-        printf("forward fin: %f afterward fin: %f rouder: %f", deltab_, deltas_, deltar_);
+        // Print control value of forward, afterward and orientation rudder
+        printf("forward fin: %f afterward fin: %f rudder: %f", deltab_, deltas_, deltar_);
 
         output.fwd_fin_ = deltab_;
         output.aft_fin_ = deltas_;
-        output.rouder_ = deltar_;
+        output.rudder_ = deltar_;
     };
 }; // ns

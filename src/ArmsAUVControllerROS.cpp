@@ -153,7 +153,7 @@ namespace auv_controller{
         controller_->controllerRun(sensor_msg, input, output, dt_);
 
         // Apply controller output
-        applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
+        applyActuatorInput(output.rudder_, output.fwd_fin_, output.aft_fin_, rpm_);
     };
 
     /**
@@ -200,16 +200,16 @@ namespace auv_controller{
 
             // Create Controller output
             AUVControllerOutput output;
-            output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rouder_ = 0.0;
+            output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rudder_ = 0.0;
             
             // Run controller
             controller_->controllerRun(sensor_msg, input, output, dt_);
 	
 	        // Print control ouput
-	        std::cout << "Control output:{" << "rouder:" << output.rouder_ << " forward fin:" << output.fwd_fin_ << " stern fin:" << output.aft_fin_ << "}" << std::endl; 
+	        std::cout << "Control output:{" << "rudder:" << output.rudder_ << " forward fin:" << output.fwd_fin_ << " stern fin:" << output.aft_fin_ << "}" << std::endl; 
 
             // Apply controller output
-            applyActuatorInput(output.rouder_, output.fwd_fin_, output.aft_fin_, rpm_);
+            applyActuatorInput(output.rudder_, output.fwd_fin_, output.aft_fin_, rpm_);
             
             // Sleep
             boost::this_thread::sleep(boost::posix_time::milliseconds(dt_ * 1000));
@@ -245,7 +245,7 @@ namespace auv_controller{
     /**
      * @brief Apply controller output
      */ 
-    void ArmsAUVControllerROS::applyActuatorInput(double rouder, double fwdfin, double aftfin, double rpm){
+    void ArmsAUVControllerROS::applyActuatorInput(double rudder, double fwdfin, double aftfin, double rpm){
         // Create new message header
         std_msgs::Header header;
         header.stamp.setNow(ros::Time::now());
@@ -261,10 +261,10 @@ namespace auv_controller{
         // Publish fins message
         uuv_gazebo_ros_plugins_msgs::FloatStamped fins_msg;
         fins_msg.header = header;
-        // Rouder
-        fins_msg.data = rouder;
+        // rudder
+        fins_msg.data = rudder;
         fin3_pub_.publish(fins_msg);
-        fins_msg.data = -rouder;
+        fins_msg.data = -rudder;
         fin5_pub_.publish(fins_msg);
         // Forward fins
         fins_msg.data = fwdfin;

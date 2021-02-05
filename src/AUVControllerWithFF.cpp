@@ -181,11 +181,11 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
         this->deltar_ = (30 / 57.3) * sign(this->deltar_);
     }
 
-    // Print control value of forward, afterward and orientation rouder
-    printf("forward fin: %f afterward fin: %f rouder: %f\n", this->deltab_, this->deltas_, this->deltar_);
+    // Print control value of forward, afterward and orientation rudder
+    printf("forward fin: %f afterward fin: %f rudder: %f\n", this->deltab_, this->deltas_, this->deltar_);
     output.fwd_fin_ = this->deltab_;
     output.aft_fin_ = this->deltas_;
-    output.rouder_ = this->deltar_;
+    output.rudder_ = this->deltar_;
 
     if(vel_ctrl){
         double u_d = input.u_d_;

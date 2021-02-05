@@ -45,7 +45,7 @@ namespace auv_controller{
      * @brief AUV controller output parameters
      */
     struct AUVControllerOutput{
-        double rouder_;
+        double rudder_;
         double fwd_fin_;
         double aft_fin_;
     }; // AUVControllerOutput
@@ -130,7 +130,11 @@ namespace auv_controller{
         {
             force_.setParameters(yuudr, zuuds, zuudb, muuds, muudb, nuudr);
         };
-/** * @brief Set force parameters */ bool setForceParams(const std::vector<double>& force);
+
+        /**
+         * @brief Set force parameters 
+         */ 
+        bool setForceParams(const std::vector<double>& force);
 
         /**
          * @brief Control solution
