@@ -17,7 +17,8 @@
 
 
 namespace auv_controller{
-AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) : with_ff_(with_ff), debug_(debug){
+AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, bool debug) : 
+    with_ff_(with_ff), x_type_(x_type), debug_(debug){
    ros::NodeHandle private_nh("~"); // private ros node handle
    ros::NodeHandle nh; // public ros node handle
    
@@ -72,8 +73,14 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
        controller_ = new AUVControllerWithFF();
    }
    else{
-       ROS_INFO("Model without front fins");
-       controller_ = new AUVControllerNoFF();
+       if(x_type){
+           ROS_INFO("Model with X type rudder");
+           controller_ = new AUVControllerXF();
+       }
+       else{
+           ROS_INFO("Model without front fins");
+           controller_ = new AUVControllerNoFF();
+       }
    }
 
    /* parameters configuration */
@@ -89,9 +96,17 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool debug) :
        ROS_WARN("Error in AUV control parameters setting! Use default settings!");
        printAUVCtrlParams(); // print control parameters
    }
-   if(!controller_->setForceParams(force_params)){
-       ROS_WARN("Error in AUV force parameters setting! Use default settings!");
-       printAUVForceParams(); // print force parameters
+   if(!x_type){
+       if(!controller_->setForceParams(force_params)){
+           ROS_WARN("Error in AUV force parameters setting! Use default settings!");
+           printAUVForceParams(); // print force parameters
+       }
+   }
+   else{
+       if(!controller_->setXForceParams(force_params)){
+           ROS_WARN("Error in AUV xforce parameters setting! Use default settings!");
+           printAUVXForceParams(); // print force parameters
+       }
    }
    controller_->setThrusterFactor(c_t, r_l, l_l, sigma);
 
@@ -193,7 +208,7 @@ void AUVControllerROS::controlThread(){
         }
 
         AUVControllerOutput output;
-        output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rouder_ = 0.0; 
+        output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rudder_ = 0.0; 
         
 
         bool get_ctrl_output = false, ctrl_vel = false;
@@ -206,7 +221,7 @@ void AUVControllerROS::controlThread(){
 
         if(get_ctrl_output){
             std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
-            vertfin_ = output.rouder_;
+            vertfin_ = output.rudder_;
             fwdfin_ = output.fwd_fin_;
             backfin_ = output.aft_fin_;
             if(ctrl_vel){
@@ -314,6 +329,35 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
     }
 }
 
+void AUVControllerROS::applyActuatorInput(double upper_p, double upper_s, double lower_p, double lower_s, double rpm)
+{
+
+    std_msgs::Header header;
+    header.stamp.setNow(ros::Time::now());
+    header.frame_id = base_frame_;
+    header.seq = ++seq_;
+
+    // Publish thruster message
+    uuv_gazebo_ros_plugins_msgs::FloatStamped thrusters_msg;
+    thrusters_msg.header = header;
+    thrusters_msg.data = rpm;
+    thruster0_pub_.publish(thrusters_msg);
+
+    // Publish fins message
+    uuv_gazebo_ros_plugins_msgs::FloatStamped fins_msg;
+    fins_msg.header = header;
+    
+    fins_msg.data = upper_p;
+    fin0_pub_.publish(fins_msg);
+    fins_msg.data = upper_s;
+    fin1_pub_.publish(fins_msg);
+
+    fins_msg.data = lower_p;
+    fin2_pub_.publish(fins_msg);
+    fins_msg.data = lower_s;
+    fin3_pub_.publish(fins_msg);
+}
+
 bool AUVControllerROS::isStable(){
     double cur_depth = -getGlobalZ();
     double cur_y = getGlobalY();
@@ -384,6 +428,14 @@ void AUVControllerROS::printAUVForceParams(){
     std::stringstream ss;
     ss << "AUV Force parameters: {";
     controller_->serializeAUVForceParams(ss);
+    ss << "}";
+    ROS_INFO_STREAM(ss.str());
+}
+
+void AUVControllerROS::printAUVXForceParams(){
+    std::stringstream ss;
+    ss << "AUV XForce parameters: {";
+    controller_->serializeAUVXForceParams(ss);
     ss << "}";
     ROS_INFO_STREAM(ss.str());
 }

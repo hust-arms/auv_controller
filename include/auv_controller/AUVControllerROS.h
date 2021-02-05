@@ -36,6 +36,7 @@
 #include "AUVBaseController.h"
 #include "AUVControllerWithFF.h"
 #include "AUVControllerNoFF.h"
+#include "AUVControllerXF.h"
 #include "file_writer.h"
 #include "PIDController.h"
 
@@ -48,7 +49,7 @@ public:
     /**
      * @brief Default constructor
      */ 
-    AUVControllerROS(std::string name, bool with_ff , bool debug);
+    AUVControllerROS(std::string name, bool with_ff, bool x_type, bool debug);
 
     /**
      * @brief Deconstructor
@@ -77,9 +78,14 @@ private:
     void wakeControlThread(const ros::TimerEvent& event);
 
     /**
-     * @brief 
+     * @brief Apply actuator input for model without front fins and model with front fins 
      */
-    void applyActuatorInput(double rouder, double fwdfin, double backfin, double rpm);
+    void applyActuatorInput(double rudder, double fwdfin, double backfin, double rpm);
+
+    /**
+     * @brief Apply actuator input for model with X type fins
+     */ 
+    void applyActuatorInput(double upper_p, double upper_s, double lower_p, double lower_s, double rpm);
 
     /**
      * @brief Return true if status of AUV is stable
@@ -267,6 +273,11 @@ private:
     void printAUVForceParams();
     
     /**
+     * @brief Print auv xforce parameters on the console
+     */
+    void printAUVXForceParams();
+    
+    /**
      * @brief Print auv body parameters on the console
      */
     void printAUVBodyParams();
@@ -316,6 +327,7 @@ private:
 
     /* Controll var */
     double fwdfin_, backfin_, vertfin_;
+    double upper_p_, upper_s_, lower_p_, lower_s_; // for X type rudder
     double rpm_;
 
     /* Threads */
@@ -341,7 +353,7 @@ private:
     std::mutex print_mutex_;
 
     /* flags */
-    bool with_ff_;
+    bool with_ff_, x_type_;
     bool is_ctrl_run_, is_emerg_run_;
     bool debug_;
 }; // AUVControllerROS
