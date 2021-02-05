@@ -43,10 +43,15 @@ struct AUVControllerInput{
   * @brief AUV controller output parameters
   */
 struct AUVControllerOutput{
-    double rouder_;
+    double rudder_;
     double fwd_fin_;
     double aft_fin_;
     double rpm_;
+
+    double upper_p_; // for X type rudder
+    double upper_s_;
+    double lower_p_;
+    double lower_s_;
 }; // AUVControllerOutput
 
 
@@ -183,6 +188,11 @@ public:
     virtual void serializeAUVForceParams(std::stringstream& str);
     
     /**
+     * @brief Serialize auv xforce parameters
+     */
+    virtual void serializeAUVXForceParams(std::stringstream& str);
+    
+    /**
      * @brief Serialize auv control parameters
      */
     virtual void serializeAUVControlParams(std::stringstream& str);
@@ -224,6 +234,13 @@ protected:
         double b_z_, b_zb_, b_zs_, b_t_, b_tb_, b_ts_;
         double g_z_, g_zb_, g_zs_, g_t_, g_tb_, g_ts_;
         double dot_z_, dot_theta_;
+
+        double a_zup_, a_zus_, a_zlp_, a_zls_; // X type rudder 
+        double a_tup_, a_tus_, a_tlp_, a_tls_;
+        double b_zup_, b_zus_, b_zlp_, b_zls_; // X type rudder 
+        double b_tup_, b_tus_, b_tlp_, b_tls_;
+        double g_zup_, g_zus_, g_zlp_, g_zls_; // X type rudder 
+        double g_tup_, g_tus_, g_tlp_, g_tls_;
     
         void init(){
             a_zw_=0.0; a_zq_=0.0; a_zs_=0.0; a_zb_=0.0; f_z_=0.0;
@@ -231,6 +248,9 @@ protected:
             b_z_=0.0; b_zb_=0.0; b_zs_=0.0; b_t_=0.0; b_tb_=0.0; b_ts_=0.0;
             g_z_=0.0; g_zb_=0.0; g_zs_=0.0; g_t_=0.0; g_tb_=0.0; g_ts_=0.0;
             dot_z_=0.0; dot_theta_=0.0;
+
+            a_zup_=0.0; a_zus_=0.0; a_zlp_=0.0; a_zls_=0.0; // X type rudder 
+            a_tup_=0.0; a_tus_=0.0; a_tlp_=0.0; a_tls_=0.0; 
         }
     }; // AUVDepthSFStatus
     
@@ -243,12 +263,23 @@ protected:
         double b_y_, b_ydr_, b_p_, b_pdr_;
         double g_y_, g_ydr_, g_p_, g_pdr_;
         double dot_y_, dot_psi_;
-    
+        
+        double a_yup_, a_yus_, a_ylp_, a_yls_; // X type rudder
+        double a_pup_, a_pus_, a_plp_, a_pls_;
+        double b_yup_, b_yus_, b_ylp_, b_yls_; // X type rudder
+        double b_pup_, b_pus_, b_plp_, b_pls_;
+        double g_yup_, g_yus_, g_ylp_, g_yls_; // X type rudder
+        double g_pup_, g_pus_, g_plp_, g_pls_;
+        
         void init(){
             a_yv_=0.0; a_yr_=0.0; a_ydr_=0.0; f_y_=0.0;
             a_pv_=0.0; a_pr_=0.0; a_pdr_=0.0; f_p_=0.0;
             b_y_=0.0; b_ydr_=0.0; b_p_=0.0; b_pdr_=0.0;
-            dot_psi_=0.0;
+            g_y_=0.0; g_ydr_=0.0; g_p_=0.0; g_pdr_=0.0;
+            dot_y_=0.0; dot_psi_=0.0;
+
+            a_yup_=0.0; a_yus_=0.0; a_ylp_=0.0; a_yls_=0.0; // X type rudder 
+            a_pup_=0.0; a_pus_=0.0; a_plp_=0.0; a_pls_=0.0; 
         }
     }; // AUVHorizonSFStatus
 
@@ -281,6 +312,7 @@ protected:
     
     // Commands
     double deltab_, deltas_, deltar_;
+    double deltaup_, deltaus_, deltalp_, deltals_; // for X type rudder
     
     // Const value
     const unsigned int body_num_ = 13;
@@ -288,7 +320,7 @@ protected:
     const unsigned int ctrl_num_ = 13;
     const unsigned int force_num_ = 6;
     
-    const unsigned int xforce_num_ = 16; // hydrodynamic params for X type rouder
+    const unsigned int xforce_num_ = 16; // hydrodynamic params for X type rudder
 
 }; // AUVBaseController
 }; // ns

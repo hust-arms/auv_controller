@@ -110,7 +110,7 @@ bool AUVBaseController::setForceParams(const std::vector<double>& force){
 /**
  * @brief Set X force parameters
  */ 
-bool AUVBaseController::setXForceParams(const std::vector<double>& force);{
+bool AUVBaseController::setXForceParams(const std::vector<double>& force){
     if(force.size() == xforce_num_){
         setXForceParams(force[0], force[1], force[2], force[3], force[4], force[5], force[6], force[7],
                         force[8], force[9], force[10], force[11], force[12], force[13], force[14], force[15]);
@@ -197,6 +197,13 @@ void AUVBaseController::serializeAUVDynamicParams(std::stringstream& str){
 void AUVBaseController::serializeAUVForceParams(std::stringstream& str){
     str << "yuudr: " << force_.y_uudr_ << " zuuds: " << force_.z_uuds_ << " zuudb: " << force_.z_uudb_;
     str << " muuds: " << force_.m_uuds_ << " muudb: " << force_.m_uudb_ << " nuudr: " << force_.n_uudr_;
+}
+
+void AUVBaseController::serializeAUVXForceParams(std::stringstream& str){
+    str << "ydup: " << xforce_.y_dup_ << " ydus: " << xforce_.y_dus_ << " ydlp: " << xforce_.y_dlp_ << " yls: " << xforce_.y_dls_;
+    str << "zdup: " << xforce_.z_dup_ << " zdus: " << xforce_.z_dus_ << " zdlp: " << xforce_.z_dlp_ << " zls: " << xforce_.z_dls_;
+    str << "mdup: " << xforce_.m_dup_ << " mdus: " << xforce_.m_dus_ << " mdlp: " << xforce_.m_dlp_ << " mls: " << xforce_.m_dls_;
+    str << "ndun: " << xforce_.n_dup_ << " ndus: " << xforce_.n_dus_ << " ndln: " << xforce_.n_dlp_ << " nls: " << xforce_.n_dls_;
 }
 
 /**
