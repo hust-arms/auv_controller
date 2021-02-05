@@ -90,6 +90,7 @@ add_library(auv_base_controller
   src/AUVControllerNoFF.cpp
   src/AUVControllerROS.cpp
   src/PIDController.cpp
+  src/AUVControllerXF.cpp
 )
 
 add_library(file_writer
