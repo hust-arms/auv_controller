@@ -39,7 +39,8 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     this->mission_.y_.ref_dot2_ = 0.0;
     this->mission_.y_.Update();
 
-    this->mission_.psi_.ref_ = input.yaw_d_ + 0.1 * atan((this->kinetic_.y_ - this->mission_.y_.ref_) / (4 * this->body_.l_));
+    // this->mission_.psi_.ref_ = input.yaw_d_ + 0.1 * atan((this->kinetic_.y_ - this->mission_.y_.ref_) / (4 * this->body_.l_));
+    this->mission_.psi_.ref_ = input.yaw_d_ + atan(mission_.lateral_dist_ / (4 * this->body_.l_));
     this->mission_.psi_.ref_dot_ = (this->mission_.psi_.ref_ - this->mission_.psi_.pre_ref_) / dt;
     this->mission_.psi_.ref_dot2_ = (this->mission_.psi_.ref_dot_ - this->mission_.psi_.pre_ref_dot_) / dt;
     this->mission_.psi_.Update();
