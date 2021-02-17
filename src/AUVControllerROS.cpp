@@ -34,6 +34,8 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, 
    private_nh.param("rpm", rpm_, 1400.0);
    private_nh.param("control_period", ctrl_dt_, 0.1);
    private_nh.param("publish_period", pub_dt_, 0.1);
+   private_nh.param("stable_wait_time", stable_wait_t_, 5.0);
+
    private_nh.param("desired_y", y_d_, 10.0);
    private_nh.param("desired_depth", depth_d_, 20.0);
    double pitch_d = 0.0 * degree2rad;
@@ -110,6 +112,8 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, 
    }
    controller_->setThrusterFactor(c_t, r_l, l_l, sigma);
 
+   is_ctrl_vel_ = false; is_wait_stable_ = false;
+
    fwdfin_ = 0.0; backfin_ = 0.0; vertfin_ = 0.0; 
 
    is_ctrl_run_ = false; is_emerg_run_ = false;
@@ -127,6 +131,13 @@ AUVControllerROS::~AUVControllerROS(){
         pub_thread_ = nullptr;
     }
 
+    if(vel_ctrl_thread_ != nullptr){
+        vel_ctrl_thread_->interrupt();
+        vel_ctrl_thread_->join();
+        delete vel_ctrl_thread_;
+        vel_ctrl_thread_ = nullptr;
+    }
+    
     if(ctrl_thread_ != nullptr){
         ctrl_thread_->interrupt();
         ctrl_thread_->join();
@@ -145,6 +156,7 @@ void AUVControllerROS::startControl(){
     ctrl_state_ = AUVCtrlState::CTRL;
     is_ctrl_run_ = true; is_emerg_run_ = false;
     ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::controlThread, this));
+    vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::velControlThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
 }
 
@@ -211,11 +223,13 @@ void AUVControllerROS::controlThread(){
         output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rudder_ = 0.0; 
         
 
-        bool get_ctrl_output = false, ctrl_vel = false;
-        if(isStable()){
-            ctrl_vel = true;
-        }
-        controller_->controllerRun(sensor_msg, input, output, ctrl_dt_, ctrl_vel);
+        bool get_ctrl_output = false;
+        // bool ctrl_vel = false;
+        // if(isStable()){
+        //     ctrl_vel = true;
+        // }
+        // controller_->controllerRun(sensor_msg, input, output, ctrl_dt_, ctrl_vel);
+        controller_->controllerRun(sensor_msg, input, output, ctrl_dt_, is_ctrl_vel_);
 
         get_ctrl_output = nh.ok();
 
@@ -224,7 +238,7 @@ void AUVControllerROS::controlThread(){
             vertfin_ = output.rudder_;
             fwdfin_ = output.fwd_fin_;
             backfin_ = output.aft_fin_;
-            if(ctrl_vel){
+            if(is_ctrl_vel_){
                 rpm_ = output.rpm_;
                 if(debug_){
                     std::lock_guard<std::mutex> guard(print_mutex_);
@@ -247,6 +261,48 @@ void AUVControllerROS::controlThread(){
             }
         }
     }
+}
+
+void AUVControllerROS::velControlThread(){
+    ros::NodeHandle nh;
+    while(nh.ok()){
+        if(isStable()){
+            if(!is_ctrl_vel_ && !is_wait_stable_){
+                // if stable and flag is not changed, only update stable time.
+                last_stable_ = ros::Time::now();
+                is_wait_stable_ = true;
+                if(debug_){
+                    std::lock_guard<std::mutex> guard(print_mutex_);
+                    printf("Wait to control velocity\n");
+                }
+            }
+            else{
+                if(is_wait_stable_){
+                    // if stable and flag has been changed, check wait time.
+                    ros::Duration sleep_time = (ros::Time::now() - last_valid_ctrl_);
+                    if(sleep_time >= ros::Duration(stable_wait_t_)){
+                        std::lock_guard<std::mutex> guard(ctrl_vel_mutex_);
+                        is_ctrl_vel_ = true;
+                        last_stable_ = ros::Time::now();
+                        is_wait_stable_ = false;
+                        if(debug_){
+                            std::lock_guard<std::mutex> guard(print_mutex_);
+                            printf("End velocity control waiting\n");
+                        }
+                    }
+                }
+            }
+        }
+        else{
+            std::lock_guard<std::mutex> guard(ctrl_vel_mutex_);
+            is_ctrl_vel_ = false;
+            // if(debug_){
+            //     std::lock_guard<std::mutex> guard(print_mutex_);
+            //     printf("Unstable\n");
+            // }
+        }
+    }
+    boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
 
 void AUVControllerROS::wakeControlThread(const ros::TimerEvent& event){

@@ -68,6 +68,11 @@ private:
     void controlThread();
     
     /**
+     * @brief Control thread
+     */
+    void velControlThread();
+    
+    /**
      * @brief Publish thread
      */ 
     void publishThread();
@@ -306,13 +311,17 @@ private:
     ros::Subscriber desired_sub_;
 
     ros::Time last_valid_ctrl_, ctrl_time_;
+    ros::Time last_stable_;
     
     double ctrl_dt_; // control period
     double pub_dt_; // publish period
+    double stable_wait_t_; // time to wait after vehicle is stable
+
     uint32_t seq_;
     std::string base_frame_; // base frame of vehicle
 
     AUVCtrlState ctrl_state_;
+    bool is_ctrl_vel_, is_wait_stable_;
 
     /* Vehicle states */
     double x_, y_, z_; // postiion in global frame
@@ -333,6 +342,7 @@ private:
     /* Threads */
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
     boost::thread* pub_thread_;  
+    boost::thread* vel_ctrl_thread_;  
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
@@ -347,7 +357,7 @@ private:
     std::mutex desired_mutex_; 
 
     /* Source lock for control variable */
-    std::mutex ctrl_var_mutex_;
+    std::mutex ctrl_var_mutex_, ctrl_vel_mutex_;
 
     /* Source lock for print */
     std::mutex print_mutex_;
