@@ -19,7 +19,13 @@
 #include "Dynamic.h"
 #include "AUVCommon.h"
 
+#include "PIDController.h"
+
+#include <boost/shared_ptr.hpp>
+
 namespace auv_controller{
+
+typedef boost::shared_ptr<PIDController> PIDControllerPtr;
 
 /**
  * @brief AUV controller input parameters
@@ -309,6 +315,8 @@ protected:
     AUVHorizonSFStatus horizon_sf_;
 
     ThrusterDynamic th_;
+
+    PIDControllerPtr vel_controller_;
     
     // Commands
     double deltab_, deltas_, deltar_;
