@@ -15,6 +15,8 @@
 #include <iomanip>
 #include "auv_controller/AUVControllerROS.h"
 
+#define SM_CTRL
+// #define SPIRAL_TEST
 
 namespace auv_controller{
 AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, bool debug) : 
@@ -32,11 +34,12 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, 
    // Default parameters
    private_nh.param("base_frame", base_frame_, std::string("base_link"));
    private_nh.param("rpm", rpm_, 1400.0);
+   ori_rpm_ = rpm_;
    private_nh.param("control_period", ctrl_dt_, 0.1);
    private_nh.param("publish_period", pub_dt_, 0.1);
-   private_nh.param("stable_wait_time", stable_wait_t_, 5.0);
+   private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
-   private_nh.param("desired_y", y_d_, 10.0);
+   private_nh.param("desired_y", y_d_, 0.0);
    private_nh.param("desired_depth", depth_d_, 20.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
@@ -155,8 +158,10 @@ void AUVControllerROS::startControl(){
     ROS_INFO("Start control thread & publish thread");
     ctrl_state_ = AUVCtrlState::CTRL;
     is_ctrl_run_ = true; is_emerg_run_ = false;
+#ifdef SM_CTRL
     ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::velControlThread, this));
+#endif
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
 }
 
@@ -168,18 +173,18 @@ void AUVControllerROS::controlThread(){
     boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
     while(nh.ok()){
         while(wait_for_wake || !is_ctrl_run_){
-            if(debug_){
-                std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Control thread is suspending\n");
-            }
+            // if(debug_){
+            //     std::lock_guard<std::mutex> guard(print_mutex_);
+            //     printf("Control thread is suspending\n");
+            // }
             ctrl_cond_.wait(lock);
             wait_for_wake = false;
         }
         // control thread wake
-        if(debug_){
-            std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control thread is waked\n");
-        }
+        // if(debug_){
+        //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //     printf("Control thread is waked\n");
+        // }
         lock.unlock();
 
         ros::Time ctrl_start_t = ros::Time::now();
@@ -201,7 +206,8 @@ void AUVControllerROS::controlThread(){
         sensor_msg.pitch_dot_ = -getAngVelPitch();
         sensor_msg.yaw_dot_ = -getAngVelYaw();
 
-        if(debug_){ std::lock_guard<std::mutex> guard(print_mutex_);
+        if(debug_){ 
+            std::lock_guard<std::mutex> guard(print_mutex_);
             std::cout << "Vehicle status:{" << "x:" << sensor_msg.x_ << " y:" << sensor_msg.y_ << " z:" << sensor_msg.z_
             << " roll:" << sensor_msg.roll_ << " pitch:" << sensor_msg.pitch_ << " yaw:" << sensor_msg.yaw_
             << " u:" << sensor_msg.x_dot_ << " v:" << sensor_msg.y_dot_ << " w:" << sensor_msg.z_dot_
@@ -239,7 +245,15 @@ void AUVControllerROS::controlThread(){
             fwdfin_ = output.fwd_fin_;
             backfin_ = output.aft_fin_;
             if(is_ctrl_vel_){
-                rpm_ = output.rpm_;
+                rpm_ += output.rpm_;
+                if(debug_){
+                    std::lock_guard<std::mutex> guard(print_mutex_);
+                    printf("RPM: %f\n", rpm_);
+                }
+            }
+            else
+            {
+                rpm_ = ori_rpm_;
                 if(debug_){
                     std::lock_guard<std::mutex> guard(print_mutex_);
                     printf("RPM: %f\n", rpm_);
@@ -252,10 +266,10 @@ void AUVControllerROS::controlThread(){
         if(ctrl_dt_ > 0.0){
             ros::Duration sleep_time = (ctrl_start_t + ros::Duration(ctrl_dt_)) - ros::Time::now();
             if(sleep_time > ros::Duration(0.0)){
-                if(debug_){
-                    std::lock_guard<std::mutex> guard(print_mutex_);
-                    printf("Control thread is waiting for wake\n");
-                }
+                // if(debug_){
+                //     std::lock_guard<std::mutex> guard(print_mutex_);
+                //     printf("Control thread is waiting for wake\n");
+                // }
                 wait_for_wake = true;
                 ctrl_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeControlThread, this);
             }
@@ -279,11 +293,11 @@ void AUVControllerROS::velControlThread(){
             else{
                 if(is_wait_stable_){
                     // if stable and flag has been changed, check wait time.
-                    ros::Duration sleep_time = (ros::Time::now() - last_valid_ctrl_);
+                    ros::Duration sleep_time = (ros::Time::now() - last_stable_);
                     if(sleep_time >= ros::Duration(stable_wait_t_)){
                         std::lock_guard<std::mutex> guard(ctrl_vel_mutex_);
                         is_ctrl_vel_ = true;
-                        last_stable_ = ros::Time::now();
+                        // last_stable_ = ros::Time::now();
                         is_wait_stable_ = false;
                         if(debug_){
                             std::lock_guard<std::mutex> guard(print_mutex_);
@@ -326,6 +340,13 @@ void AUVControllerROS::publishThread(){
             backfin = backfin_;
             rpm = rpm_;
         }
+
+#ifdef SPIRAL_TEST
+        vertfin = 20 / 57.3; 
+        fwdfin = 5 / 57.3; 
+        backfin = -5 / 57.3; 
+        rpm = 1900;
+#endif
 
         {
             std::lock_guard<std::mutex> guard(print_mutex_);
@@ -463,6 +484,17 @@ void AUVControllerROS::dvlCb(const uuv_sensor_ros_plugins_msgs::DVL::ConstPtr& m
     v_ = msg->velocity.y;
     w_ = msg->velocity.z;
 }
+
+void AUVControllerROS::desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg)
+{
+    std::lock_guard<std::mutex> guard(desired_mutex_);
+    depth_d_ = msg->depth;
+    y_d_ = msg->latdev;
+    pitch_d_ = msg->dpitch;
+    yaw_d_ = msg->dyaw;
+    u_d_ = msg->dlinvelx;
+}
+
 
 void AUVControllerROS::printAUVDynamicParams(){
     std::stringstream ss;

@@ -259,7 +259,7 @@ private:
     /**
      * @brief Desired input 
      */
-    // void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
+    void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
 
     /* Debug interface */
     /**
@@ -337,7 +337,7 @@ private:
     /* Controll var */
     double fwdfin_, backfin_, vertfin_;
     double upper_p_, upper_s_, lower_p_, lower_s_; // for X type rudder
-    double rpm_;
+    double rpm_, ori_rpm_;
 
     /* Threads */
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
