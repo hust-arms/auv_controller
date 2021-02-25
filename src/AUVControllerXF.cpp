@@ -239,7 +239,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     output.upper_s_ = this->deltaus_;
     output.lower_p_ = this->deltalp_;
     output.lower_s_ = this->deltals_;
-
+    /*
     if(vel_ctrl){
         double u_d = input.u_d_;
         // double th_d = -(this->dynamic_.z_dotw_ * (this->kinetic_.w_ + this->kinetic_.q_) * this->kinetic_.q_ - 
@@ -255,6 +255,15 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
             rpm_d = -((abs(th_d) - this->th_.sigma_) / this->th_.c_t_ + abs(this->th_.l_death_area_));
         }
         output.rpm_ = rpm_d;
+    }*/
+
+    // PID
+    if(vel_ctrl)
+    {
+        this->vel_controller_->setTargetParams(input.u_d_);
+        // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
+        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
+        printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 }
 

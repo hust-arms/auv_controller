@@ -183,11 +183,13 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     }
 
     // Print control value of forward, afterward and orientation rudder
-    printf("forward fin: %f afterward fin: %f rudder: %f\n", this->deltab_, this->deltas_, this->deltar_);
+    // printf("forward fin: %f afterward fin: %f rudder: %f\n", this->deltab_, this->deltas_, this->deltar_);
     output.fwd_fin_ = this->deltab_;
     output.aft_fin_ = this->deltas_;
     output.rudder_ = this->deltar_;
 
+    // model based
+    /*
     if(vel_ctrl){
         double u_d = input.u_d_;
         // double th_d = -(this->dynamic_.z_dotw_ * (this->kinetic_.w_ + this->kinetic_.q_) * this->kinetic_.q_ -
@@ -203,6 +205,16 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
             rpm_d = -((abs(th_d) - this->th_.sigma_) / this->th_.c_t_ + abs(this->th_.l_death_area_));
         }
         output.rpm_ = rpm_d;
+    }
+    */
+
+    // PID
+    if(vel_ctrl)
+    {
+        this->vel_controller_->setTargetParams(input.u_d_);
+        // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
+        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
+        printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 }; 
 
