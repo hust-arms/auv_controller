@@ -169,6 +169,7 @@ void AUVBaseController::defaultInit(){
     mission_.psi_.pre_ref_dot_ = 0.0;
 
     deltab_ = 0.0; deltas_ = 0.0; deltar_ = 0.0;
+    deltaup_ = 0.0; deltaus_ = 0.0; deltalp_ = 0.0; deltals_ = 0.0;
 }
 
 /**
