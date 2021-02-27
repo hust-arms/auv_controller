@@ -14,6 +14,9 @@
 #include "auv_controller/AUVControllerXF.h"
 
 namespace auv_controller{
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DynamicMatrix;
+
 /**
  * @brief Control solution
  */
@@ -51,10 +54,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     // Depth variable substitution
     this->depth_sf_.a_zw_ = this->body_.m_ - this->dynamic_.z_dotw_;
     this->depth_sf_.a_zq_ = -(this->body_.m_ * this->body_.x_g_ + this->dynamic_.z_dotq_);
-    this->depth_sf_.a_zup_ = this->xforce_.z_dup_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_zus_ = this->xforce_.z_dus_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_zlp_ = this->xforce_.z_dlp_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_zls_ = this->xforce_.z_dls_ * this->kinetic_.u_ * this->kinetic_.u_;
+    this->depth_sf_.a_zs_ = this->force_.z_uuds_ * this->kinetic_.u_ * this->kinetic_.u_;
     this->depth_sf_.f_z_ = this->body_.m_ * this->kinetic_.u_ * this->kinetic_.q_ +
         this->body_.m_ * this->body_.z_g_ * this->kinetic_.q_ * this->kinetic_.q_ -
         this->dynamic_.x_dotu_ * this->kinetic_.u_ * this->kinetic_.q_ +
@@ -63,14 +63,12 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
         this->dynamic_.z_qq_ * this->kinetic_.q_ * fabs(this->kinetic_.q_) +
         this->dynamic_.z_uq_ * this->kinetic_.u_ * this->kinetic_.q_ +
         (this->body_.w_ - this->body_.b_) * cos(this->kinetic_.theta_);
+
     
     // pitch variable substitution
     this->depth_sf_.a_tw_ = -(this->body_.m_ * this->body_.x_g_ + this->dynamic_.m_dotw_);
     this->depth_sf_.a_tq_ = this->body_.i_yy_ - this->dynamic_.m_dotq_;
-    this->depth_sf_.a_tup_ = this->xforce_.m_dup_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_tus_ = this->xforce_.m_dus_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_tlp_ = this->xforce_.m_dlp_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->depth_sf_.a_tls_ = this->xforce_.m_dls_ * this->kinetic_.u_ * this->kinetic_.u_;
+    this->depth_sf_.a_ts_ = this->force_.m_uuds_ * this->kinetic_.u_ * this->kinetic_.u_;
     this->depth_sf_.f_t_ = -this->body_.m_ * this->body_.z_g_ * this->kinetic_.w_ * this->kinetic_.q_ -
         this->body_.m_ * this->body_.x_g_ * this->kinetic_.u_ * this->kinetic_.q_ -
         (this->dynamic_.z_dotw_ * this->kinetic_.w_ + this->dynamic_.z_dotq_ * this->kinetic_.q_) * this->kinetic_.u_ +
@@ -80,32 +78,23 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
         this->dynamic_.m_uq_ * this->kinetic_.u_ * this->kinetic_.q_ -
         (this->body_.z_g_ * this->body_.w_ - this->body_.z_b_ * this->body_.b_) * sin(this->kinetic_.theta_) -
         (this->body_.x_g_ * this->body_.w_ - this->body_.x_b_ * this->body_.b_) * cos(this->kinetic_.theta_);
+
    
     // Calculate simplified formula of state in depth
     double deno_depth =  this->depth_sf_.a_zw_ * this->depth_sf_.a_tq_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_tw_;
-    this->depth_sf_.b_z_ =  (this->depth_sf_.a_tq_ * this->depth_sf_.f_z_ - this->depth_sf_.a_zq_ * this->depth_sf_.f_t_) / deno_depth; 
-    this->depth_sf_.b_zup_ = (this->depth_sf_.a_tq_ * this->depth_sf_.a_zup_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_tup_) / deno_depth;
-    this->depth_sf_.b_zus_ = (this->depth_sf_.a_tq_ * this->depth_sf_.a_zus_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_tus_) / deno_depth;
-    this->depth_sf_.b_zlp_ = (this->depth_sf_.a_tq_ * this->depth_sf_.a_zlp_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_tlp_) / deno_depth;
-    this->depth_sf_.b_zlp_ = (this->depth_sf_.a_tq_ * this->depth_sf_.a_zlp_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_tlp_) / deno_depth;
+    this->depth_sf_.b_z_ =  (this->depth_sf_.a_tq_ * this->depth_sf_.f_z_ - this->depth_sf_.a_zq_ * this->depth_sf_.f_t_) / deno_depth;
+    this->depth_sf_.b_zs_ = (this->depth_sf_.a_tq_ * this->depth_sf_.a_zs_ - this->depth_sf_.a_zq_ * this->depth_sf_.a_ts_) / deno_depth;
     this->depth_sf_.b_t_ = (this->depth_sf_.a_zw_ * this->depth_sf_.f_t_ - this->depth_sf_.a_tw_ * this->depth_sf_.f_z_) / deno_depth;
-    this->depth_sf_.b_tup_ = (this->depth_sf_.a_zw_ * this->depth_sf_.a_tup_ - this->depth_sf_.a_tw_ * this->depth_sf_.a_zup_) / deno_depth;
-    this->depth_sf_.b_tus_ = (this->depth_sf_.a_zw_ * this->depth_sf_.a_tus_ - this->depth_sf_.a_tw_ * this->depth_sf_.a_zus_) / deno_depth;
-    this->depth_sf_.b_tlp_ = (this->depth_sf_.a_zw_ * this->depth_sf_.a_tlp_ - this->depth_sf_.a_tw_ * this->depth_sf_.a_zlp_) / deno_depth;
-    this->depth_sf_.b_tls_ = (this->depth_sf_.a_zw_ * this->depth_sf_.a_tls_ - this->depth_sf_.a_tw_ * this->depth_sf_.a_zls_) / deno_depth;
+    this->depth_sf_.b_ts_ = (this->depth_sf_.a_zw_ * this->depth_sf_.a_ts_ - this->depth_sf_.a_tw_ * this->depth_sf_.a_zs_) / deno_depth;
+
 
     // Calculate quadratic factor of z & pitch
     this->depth_sf_.g_z_ = this->depth_sf_.b_z_ * cos(this->kinetic_.theta_) - this->kinetic_.u_ * this->kinetic_.q_ * cos(this->kinetic_.theta_) -
             this->kinetic_.w_ * this->kinetic_.q_ * sin(this->kinetic_.theta_);
-    this->depth_sf_.g_zup_ = this->depth_sf_.b_zup_ * cos(this->kinetic_.theta_);
-    this->depth_sf_.g_zus_ = this->depth_sf_.b_zus_ * cos(this->kinetic_.theta_);
-    this->depth_sf_.g_zlp_ = this->depth_sf_.b_zlp_ * cos(this->kinetic_.theta_);
-    this->depth_sf_.g_zls_ = this->depth_sf_.b_zls_ * cos(this->kinetic_.theta_);
+    this->depth_sf_.g_zs_ = this->depth_sf_.b_zs_ * cos(this->kinetic_.theta_);
     this->depth_sf_.g_t_ = this->depth_sf_.b_t_;
-    this->depth_sf_.g_tup_ = this->depth_sf_.b_tup_;
-    this->depth_sf_.g_tus_ = this->depth_sf_.b_tus_;
-    this->depth_sf_.g_tlp_ = this->depth_sf_.b_tlp_;
-    this->depth_sf_.g_tls_ = this->depth_sf_.b_tls_;
+    this->depth_sf_.g_ts_ = this->depth_sf_.b_ts_;
+
 
     // Update dot z & dot pitch
     this->depth_sf_.dot_z_ = -this->kinetic_.u_ * sin(this->kinetic_.theta_) + this->kinetic_.w_ * cos(this->kinetic_.theta_);
@@ -116,10 +105,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     // lateral variable substitution
     this->horizon_sf_.a_yv_ = this->body_.m_ - this->dynamic_.y_dotv_;
     this->horizon_sf_.a_yr_ = this->body_.m_ * this->body_.x_g_ - this->dynamic_.y_dotr_;
-    this->horizon_sf_.a_yup_ = this->xforce_.y_dup_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_yus_ = this->xforce_.y_dus_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_ylp_ = this->xforce_.y_dlp_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_yls_ = this->xforce_.y_dls_ * this->kinetic_.u_ * this->kinetic_.u_;
+    this->horizon_sf_.a_ydr_ = this->force_.y_uudr_ * this->kinetic_.u_ * this->kinetic_.u_;
     this->horizon_sf_.f_y_ = this->body_.m_ * this->body_.y_g_ * this->kinetic_.r_ * this->kinetic_.r_ -
         this->body_.m_ * this->kinetic_.u_ * this->kinetic_.r_ + this->dynamic_.x_dotu_ * this->kinetic_.u_ * this->kinetic_.r_ + 
         this->dynamic_.y_vv_ * this->kinetic_.v_ * fabs(this->kinetic_.v_) +
@@ -130,10 +116,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     // Variable substitution for yaw
     this->horizon_sf_.a_pv_ = this->body_.m_ * this->body_.x_g_ - this->dynamic_.n_dotv_;
     this->horizon_sf_.a_pr_ = this->body_.i_zz_ - this->dynamic_.n_dotr_;
-    this->horizon_sf_.a_pup_ = this->xforce_.n_dup_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_pus_ = this->xforce_.n_dus_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_plp_ = this->xforce_.n_dlp_ * this->kinetic_.u_ * this->kinetic_.u_;
-    this->horizon_sf_.a_pls_ = this->xforce_.n_dls_ * this->kinetic_.u_ * this->kinetic_.u_;
+    this->horizon_sf_.a_pdr_ = this->force_.n_uudr_ * this->kinetic_.u_ * this->kinetic_.u_;
     this->horizon_sf_.f_p_ = -this->body_.m_ * this->body_.x_g_ * this->kinetic_.u_ * this->kinetic_.r_ -
         this->body_.m_ * this->body_.y_g_ * this->kinetic_.v_ * this->kinetic_.r_ +
         (this->dynamic_.y_dotv_ * this->kinetic_.v_ + this->dynamic_.y_dotr_ * this->kinetic_.r_) * this->kinetic_.u_ -
@@ -143,31 +126,21 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
         this->dynamic_.n_rr_ * this->kinetic_.r_ * fabs(this->kinetic_.r_) +
         this->dynamic_.n_ur_ * this->kinetic_.u_ * this->kinetic_.r_;
 
+
     // Calculate simplified formula of state in lateral plane
     double deno_lateral = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_pr_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_yr_);
     this->horizon_sf_.b_y_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.f_y_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.f_p_) / deno_lateral;
-    this->horizon_sf_.b_yup_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.a_yup_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.a_pup_) / deno_lateral;
-    this->horizon_sf_.b_yus_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.a_yus_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.a_pus_) / deno_lateral;
-    this->horizon_sf_.b_ylp_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.a_ylp_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.a_plp_) / deno_lateral;
-    this->horizon_sf_.b_yls_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.a_yls_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.a_pls_) / deno_lateral;
+    this->horizon_sf_.b_ydr_ = (this->horizon_sf_.a_pr_ * this->horizon_sf_.a_ydr_ - this->horizon_sf_.a_yr_ * this->horizon_sf_.a_pdr_) / deno_lateral;
     this->horizon_sf_.b_p_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.f_p_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.f_y_) / deno_lateral;
-    this->horizon_sf_.b_pup_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_pup_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_yup_) / deno_lateral;
-    this->horizon_sf_.b_pus_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_pus_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_yus_) / deno_lateral;
-    this->horizon_sf_.b_plp_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_plp_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_ylp_) / deno_lateral;
-    this->horizon_sf_.b_pls_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_pls_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_yls_) / deno_lateral;
+    this->horizon_sf_.b_pdr_ = (this->horizon_sf_.a_yv_ * this->horizon_sf_.a_pdr_ - this->horizon_sf_.a_pv_ * this->horizon_sf_.a_ydr_) / deno_lateral;
+
 
     // Calculate quadratic factor of y & yaw
     this->horizon_sf_.g_y_ = this->horizon_sf_.b_y_ * cos(this->kinetic_.psi_) + this->kinetic_.u_ * this->kinetic_.r_ * cos(this->kinetic_.psi_) -
           this->kinetic_.v_ * this->kinetic_.r_ * sin(this->kinetic_.psi_);
-    this->horizon_sf_.g_yup_ = this->horizon_sf_.b_yup_ * cos(this->kinetic_.psi_);
-    this->horizon_sf_.g_yus_ = this->horizon_sf_.b_yus_ * cos(this->kinetic_.psi_);
-    this->horizon_sf_.g_ylp_ = this->horizon_sf_.b_ylp_ * cos(this->kinetic_.psi_);
-    this->horizon_sf_.g_yls_ = this->horizon_sf_.b_yls_ * cos(this->kinetic_.psi_);
+    this->horizon_sf_.g_ydr_ = this->horizon_sf_.b_ydr_ * cos(this->kinetic_.psi_);
     this->horizon_sf_.g_p_ = this->horizon_sf_.b_p_;
-    this->horizon_sf_.g_pup_ = this->horizon_sf_.b_pup_;
-    this->horizon_sf_.g_pus_ = this->horizon_sf_.b_pus_;
-    this->horizon_sf_.g_plp_ = this->horizon_sf_.b_plp_;
-    this->horizon_sf_.g_pls_ = this->horizon_sf_.b_pls_;
+    this->horizon_sf_.g_pdr_ = this->horizon_sf_.b_pdr_;
     
     // Update dot y & dot yaw
     this->horizon_sf_.dot_y_ = this->kinetic_.u_ * sin(this->kinetic_.psi_) + this->kinetic_.v_ * cos(this->kinetic_.psi_);
@@ -201,24 +174,38 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     this->slide_model_.psi_.l_ = this->mission_.psi_.ref_dot2_ - this->horizon_sf_.g_p_ - this->ctrl_.psi_.c_ * this->slide_model_.psi_.dot_e_ -
         this->ctrl_.psi_.k_ * pow(fabs(this->slide_model_.psi_.s_), this->ctrl_.psi_.alpha_) * sat(this->slide_model_.psi_.s_, this->ctrl_.bondary_thick_);
 
-    Eigen::Vector4d deltar, slide_model_l;
-    slide_model_l[0] = slide_model_.z_.l_;
-    slide_model_l[1] = slide_model_.theta_.l_;
-    slide_model_l[2] = slide_model_.y_.l_;
-    slide_model_l[3] = slide_model_.psi_.l_;
+    // Caculate target rudder angle
+    double deno_depth_ctrl = this->depth_sf_.g_zs_ - this->depth_sf_.g_ts_;
+    this->deltas_ = (this->slide_model_.z_.l_- this->slide_model_.theta_.l_) / deno_depth_ctrl;
+    double deno_lateral_ctrl = this->horizon_sf_.g_pdr_;
+    this->deltar_ = this->slide_model_.psi_.l_ / deno_lateral_ctrl;
 
-    Eigen::Matrix4d G_matrix;
-    G_matrix << this->depth_sf_.g_zup_ , this->depth_sf_.g_zus_ , this->depth_sf_.g_zlp_ , this->depth_sf_.g_zls_,
-        this->depth_sf_.g_tup_ , this->depth_sf_.g_tus_ , this->depth_sf_.g_tlp_ , this->depth_sf_.g_tls_,
-        this->horizon_sf_.g_yup_ , this->horizon_sf_.g_yus_ , this->horizon_sf_.g_ylp_ , this->horizon_sf_.g_yls_,
-        this->horizon_sf_.g_pup_ , this->horizon_sf_.g_pus_ , this->horizon_sf_.g_plp_ , this->horizon_sf_.g_pls_;
+    Eigen::Matrix<double,2,1> deltarud;
+    deltarud << this->deltar_, this->deltas_;
 
-    deltar = G_matrix.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinU).solve(slide_model_l); 
+    printf("Lateral rudder resolution: forward rudder: %f, backward rudder: %f\n", this->deltar_, this->deltas_);
 
-    this->deltaup_ = deltar[0];
-    this->deltaus_ = deltar[1];
-    this->deltalp_ = deltar[2];
-    this->deltals_ = deltar[3];
+    // Eigen::Matrix<double,2,4> x_rudder_map;
+    std::vector<double> x_rudder_mapvec{0.25, 0.25, 0.25, 0.25, -0.25, 0.25, -0.25, 0.25};
+    Eigen::Map<DynamicMatrix> x_rudder_map(x_rudder_mapvec.data(), 2, 4);
+    x_rudder_map *= sqrt(2);
+
+    // auto deltar = x_rudder_map.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullU).solve(deltarud); 
+    // auto svd = x_rudder_map.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<DynamicMatrix> svd(x_rudder_map, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    double tolerance = std::numeric_limits<double>::epsilon() * std::max(x_rudder_map.cols(), x_rudder_map.rows()) * 
+        svd.singularValues().array().abs()(0);
+    auto x_rudder_mapinv = svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * 
+        svd.matrixU().adjoint();
+
+    auto deltar = x_rudder_mapinv * deltarud;
+
+    std::cout << "X allocate: " << deltar << std::endl;
+
+    this->deltaus_ = deltar(0);
+    this->deltaup_ = deltar(1);
+    this->deltalp_ = deltar(2);
+    this->deltals_ = deltar(3);
 
     if(fabs(this->deltaup_) > 30 / 57.3){
         this->deltaup_ = (30 / 57.3) * sign(this->deltaup_);
