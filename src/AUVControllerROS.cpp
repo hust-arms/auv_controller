@@ -15,7 +15,9 @@
 #include <iomanip>
 #include "auv_controller/AUVControllerROS.h"
 
+/* Test macro */
 #define SM_CTRL
+// #define THRUST_TEST
 // #define SPIRAL_TEST
 
 namespace auv_controller{
@@ -25,11 +27,16 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, 
    ros::NodeHandle nh; // public ros node handle
    
    // Parameters setting
+   std::string auv_name;
    std::vector<double> dynamic, body_params, ctrl_params, force_params;
+
+   private_nh.getParam("name", auv_name);
    private_nh.getParam("dynamic_params", dynamic);
    private_nh.getParam("force_params", force_params);
    private_nh.getParam("control_params", ctrl_params);
    private_nh.getParam("body_params", body_params);
+
+   auv_name = "auv324";
 
    // Default parameters
    private_nh.param("base_frame", base_frame_, std::string("base_link"));
@@ -58,19 +65,37 @@ AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, 
    private_nh.param("sigma", sigma, -1.0);
 
    // Initialization of publisher and subscriber
-   imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
-   pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/armsauv/pressure", 1, boost::bind(&AUVControllerROS::pressureCb, this, _1));
-   posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&AUVControllerROS::posegtCb, this, _1));
-   dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>("/armsauv/dvl", 1, boost::bind(&AUVControllerROS::dvlCb, this, _1));
+   // imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
+   imu_sub_ = nh.subscribe<sensor_msgs::Imu>(auv_name+"/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
+   // pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/armsauv/pressure", 1, boost::bind(&AUVControllerROS::pressureCb, this, _1));
+   pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>(auv_name+"/pressure", 1, boost::bind(&AUVControllerROS::pressureCb, this, _1));
+   // posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&AUVControllerROS::posegtCb, this, _1));
+   posegt_sub_ = nh.subscribe<nav_msgs::Odometry>(auv_name+"/pose_gt", 1, boost::bind(&AUVControllerROS::posegtCb, this, _1));
+   // dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>("/armsauv/dvl", 1, boost::bind(&AUVControllerROS::dvlCb, this, _1));
+   dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>(auv_name+"/dvl", 1, boost::bind(&AUVControllerROS::dvlCb, this, _1));
    /* reserved for desired params subscription */ 
    
-   thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/thrusters/0/input", 1);
-   fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/0/input", 1);
-   fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/1/input", 1);
-   fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/2/input", 1);
-   fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/3/input", 1);
-   fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/4/input", 1);
-   fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/5/input", 1);
+   // thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/thrusters/0/input", 1);
+   // fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/0/input", 1);
+   // fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/1/input", 1);
+   // fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/2/input", 1);
+   // fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/3/input", 1);
+   // fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/4/input", 1);
+   // fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/5/input", 1);
+   thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/thrusters/0/input", 1);
+   fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/0/input", 1);
+   fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/1/input", 1);
+   fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/2/input", 1);
+   fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/3/input", 1);
+   fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/4/input", 1);
+   fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/5/input", 1);
+
+   // front_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/front_rudder_angle", 1);
+   // back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/back_rudder_angle", 1);
+   // vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/vertical_rudder_angle", 1);
+   front_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/front_rudder_angle", 1);
+   back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/back_rudder_angle", 1);
+   vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/vertical_rudder_angle", 1);
 
    /* initialize controller */
    if (with_ff){
@@ -227,7 +252,7 @@ void AUVControllerROS::controlThread(){
 
         AUVControllerOutput output;
         output.fwd_fin_ = 0.0; output.aft_fin_ = 0.0; output.rudder_ = 0.0; 
-        
+        output.upper_p_ = 0.0; output.upper_s_ = 0.0; output.lower_p_ = 0.0; output.lower_s_ = 0.0;
 
         bool get_ctrl_output = false;
         // bool ctrl_vel = false;
@@ -241,9 +266,23 @@ void AUVControllerROS::controlThread(){
 
         if(get_ctrl_output){
             std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
-            vertfin_ = output.rudder_;
-            fwdfin_ = output.fwd_fin_;
-            backfin_ = output.aft_fin_;
+            // update rudder info 
+            if(!x_type_)
+            {
+                vertfin_ = output.rudder_;
+                fwdfin_ = output.fwd_fin_;
+                backfin_ = output.aft_fin_;
+
+            }
+            else
+            {
+                upper_p_ = output.upper_p_;
+                upper_s_ = output.upper_s_;
+                lower_p_ = output.lower_p_;
+                lower_s_ = output.lower_s_;
+            }
+
+            // update rotor speed 
             if(is_ctrl_vel_){
                 rpm_ += output.rpm_;
                 if(debug_){
@@ -333,28 +372,62 @@ void AUVControllerROS::publishThread(){
 
     while(nh.ok()){
         double vertfin, fwdfin, backfin, rpm;
+        double upper_p, upper_s, lower_p, lower_s;
+        if(!x_type_)
         {
             std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
             vertfin = vertfin_;
             fwdfin = fwdfin_;
             backfin = backfin_;
             rpm = rpm_;
-        }
 
 #ifdef SPIRAL_TEST
-        vertfin = 20 / 57.3; 
-        fwdfin = 5 / 57.3; 
-        backfin = -5 / 57.3; 
-        rpm = 1900;
+            vertfin = 20 / 57.3;
+            fwdfin = 5 / 57.3;
+            backfin = -5 / 57.3;
+            rpm = 1900;
 #endif
 
+#ifdef THRUST_TEST
+            vertfin = 0.0;
+            fwdfin = 0.0;
+            backfin = 0.0;
+            rpm = 1900;
+#endif
+        }
+        else
+        {
+            std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
+            upper_p = upper_p_;
+            upper_s = upper_s_;
+            lower_p = lower_p_;
+            lower_s = lower_s_;
+            rpm = rpm_;
+        }
+
+        // print statues info
+        if(!x_type_)
         {
             std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f\n}", vertfin, fwdfin, backfin, rpm);
+            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f\n}", 
+                   vertfin, fwdfin, backfin, rpm);
+        }
+        else
+        {
+            std::lock_guard<std::mutex> guard(print_mutex_);
+            printf("Control output:{upper port fin:%8f upper starboard fin:%8f lower port fin:%8f lower starboard fin:%8f rpm:%8f\n}", 
+                   upper_p, upper_s, lower_p, lower_s, rpm);
         }
 
         // publish control output
-        applyActuatorInput(vertfin, fwdfin, backfin, rpm);
+        if(!x_type_)
+        {
+            applyActuatorInput(vertfin, fwdfin, backfin, rpm);
+        }
+        else
+        {
+            applyActuatorInput(upper_p, upper_s, lower_p, lower_s, rpm);
+        }
 
         boost::this_thread::sleep(boost::posix_time::milliseconds(pub_dt_ * 1000));
     };
@@ -378,11 +451,15 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
     if(with_ff_){
         // Vertical fins
         fins_msg.data = vertfin;
+        vert_rudder_ang_pub_.publish(fins_msg); // test
+
         fin3_pub_.publish(fins_msg);
         fins_msg.data = -vertfin;
         fin5_pub_.publish(fins_msg);
         // Forward fins
         fins_msg.data = fwdfin;
+        front_rudder_ang_pub_.publish(fins_msg); // test
+
         fin0_pub_.publish(fins_msg);
         fins_msg.data = -fwdfin;
         fin1_pub_.publish(fins_msg);
@@ -391,10 +468,15 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
         fin2_pub_.publish(fins_msg);
         fins_msg.data = backfin;
         fin4_pub_.publish(fins_msg);
+
+        back_rudder_ang_pub_.publish(fins_msg); // test
     }
-    else{
+    else
+    {
         // Vertical fins
         fins_msg.data = vertfin;
+        vert_rudder_ang_pub_.publish(fins_msg);
+
         fin1_pub_.publish(fins_msg);
         fins_msg.data = -vertfin;
         fin3_pub_.publish(fins_msg);
@@ -403,6 +485,11 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
         fin0_pub_.publish(fins_msg);
         fins_msg.data = backfin;
         fin2_pub_.publish(fins_msg);
+
+        back_rudder_ang_pub_.publish(fins_msg); // test
+
+        fins_msg.data = 0.0;
+        front_rudder_ang_pub_.publish(fins_msg); // test
     }
 }
 
