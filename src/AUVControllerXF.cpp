@@ -183,29 +183,40 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     Eigen::Matrix<double,2,1> deltarud;
     deltarud << this->deltar_, this->deltas_;
 
-    printf("Lateral rudder resolution: forward rudder: %f, backward rudder: %f\n", this->deltar_, this->deltas_);
+    printf("Lateral rudder resolution: forward rudder: %f, vertical rudder: %f\n", this->deltar_, this->deltas_);
 
-    // Eigen::Matrix<double,2,4> x_rudder_map;
-    std::vector<double> x_rudder_mapvec{0.25, 0.25, 0.25, 0.25, -0.25, 0.25, -0.25, 0.25};
-    Eigen::Map<DynamicMatrix> x_rudder_map(x_rudder_mapvec.data(), 2, 4);
-    x_rudder_map *= sqrt(2);
+    Eigen::Matrix<double, 4, 2> x_rudder_map;
+    x_rudder_map << 0.25, 0.25, 0.25, -0.25, 0.25, 0.25, 0.25, -0.25;
+    // x_rudder_map << 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5;
+    // x_rudder_map *= sqrt(2);
 
-    // auto deltar = x_rudder_map.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullU).solve(deltarud); 
-    // auto svd = x_rudder_map.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
-    Eigen::JacobiSVD<DynamicMatrix> svd(x_rudder_map, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    double tolerance = std::numeric_limits<double>::epsilon() * std::max(x_rudder_map.cols(), x_rudder_map.rows()) * 
-        svd.singularValues().array().abs()(0);
-    auto x_rudder_mapinv = svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * 
-        svd.matrixU().adjoint();
-
-    auto deltar = x_rudder_mapinv * deltarud;
+    auto deltar = x_rudder_map * deltarud;
+  
+    // std::vector<double> x_rudder_mapvec{0.25, 0.25, 0.25, 0.25, -0.25, 0.25, -0.25, 0.25};
+    // Eigen::Map<DynamicMatrix> x_rudder_map(x_rudder_mapvec.data(), 2, 4);
+    // x_rudder_map *= sqrt(2);
+    // 
+    // // auto deltar = x_rudder_map.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullU).solve(deltarud); 
+    // // auto svd = x_rudder_map.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
+    // Eigen::JacobiSVD<DynamicMatrix> svd(x_rudder_map, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    // double tolerance = std::numeric_limits<double>::epsilon() * std::max(x_rudder_map.cols(), x_rudder_map.rows()) * 
+    //     svd.singularValues().array().abs()(0);
+    // auto x_rudder_mapinv = svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * 
+    //     svd.matrixU().adjoint();
+    // 
+    // auto deltar = x_rudder_mapinv * deltarud;
 
     std::cout << "X allocate: " << deltar << std::endl;
 
+    // this->deltaus_ = deltar(0);
+    // this->deltaup_ = deltar(1);
+    // this->deltalp_ = deltar(2);
+    // this->deltals_ = deltar(3);
+
     this->deltaus_ = deltar(0);
-    this->deltaup_ = deltar(1);
+    this->deltals_ = deltar(1);
     this->deltalp_ = deltar(2);
-    this->deltals_ = deltar(3);
+    this->deltaup_ = deltar(3);
 
     if(fabs(this->deltaup_) > 30 / 57.3){
         this->deltaup_ = (30 / 57.3) * sign(this->deltaup_);
