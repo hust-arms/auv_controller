@@ -19,24 +19,22 @@
 #define SM_CTRL
 // #define THRUST_TEST
 // #define SPIRAL_TEST
+// #define XRUDDER_TEST
 
 namespace auv_controller{
-AUVControllerROS::AUVControllerROS(std::string name, bool with_ff, bool x_type, bool debug) : 
+AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_type, bool debug) : 
     with_ff_(with_ff), x_type_(x_type), debug_(debug){
    ros::NodeHandle private_nh("~"); // private ros node handle
    ros::NodeHandle nh; // public ros node handle
    
    // Parameters setting
-   std::string auv_name;
    std::vector<double> dynamic, body_params, ctrl_params, force_params;
 
-   private_nh.getParam("name", auv_name);
+   // private_nh.getParam("name", auv_name);
    private_nh.getParam("dynamic_params", dynamic);
    private_nh.getParam("force_params", force_params);
    private_nh.getParam("control_params", ctrl_params);
    private_nh.getParam("body_params", body_params);
-
-   auv_name = "auv324";
 
    // Default parameters
    private_nh.param("base_frame", base_frame_, std::string("base_link"));
@@ -403,6 +401,14 @@ void AUVControllerROS::publishThread(){
             lower_p = lower_p_;
             lower_s = lower_s_;
             rpm = rpm_;
+
+#ifdef XRUDDER_TEST
+            upper_p = 20 / 57.3;
+            upper_s = 20 / 57.3;
+            lower_p = 20 / 57.3;
+            lower_s = 20 / 57.3;
+            rpm = 1900;
+#endif
         }
 
         // print statues info
@@ -511,14 +517,18 @@ void AUVControllerROS::applyActuatorInput(double upper_p, double upper_s, double
     uuv_gazebo_ros_plugins_msgs::FloatStamped fins_msg;
     fins_msg.header = header;
     
-    fins_msg.data = upper_p;
+    // fins_msg.data = upper_p;
+    fins_msg.data = -upper_p;
     fin0_pub_.publish(fins_msg);
-    fins_msg.data = upper_s;
+    // fins_msg.data = upper_s;
+    fins_msg.data = -upper_s;
     fin1_pub_.publish(fins_msg);
 
-    fins_msg.data = lower_p;
+    // fins_msg.data = lower_p;
+    fins_msg.data = -lower_p;
     fin2_pub_.publish(fins_msg);
-    fins_msg.data = lower_s;
+    // fins_msg.data = lower_s;
+    fins_msg.data = -lower_s;
     fin3_pub_.publish(fins_msg);
 }
 
