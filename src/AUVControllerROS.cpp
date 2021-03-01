@@ -213,6 +213,8 @@ void AUVControllerROS::controlThread(){
         ros::Time ctrl_start_t = ros::Time::now();
 
         /* get status */
+        // Y,Z,yaw and pitch should be reversed due to that the slide model control algorithm
+        // is based on NED frame
         AUVKineticSensor sensor_msg;
         sensor_msg.x_ = getGlobalX();
         sensor_msg.y_ = -getGlobalY();
@@ -516,7 +518,9 @@ void AUVControllerROS::applyActuatorInput(double upper_p, double upper_s, double
     // Publish fins message
     uuv_gazebo_ros_plugins_msgs::FloatStamped fins_msg;
     fins_msg.header = header;
-    
+ 
+    // Rudder angle should be reversed due to that slide model control algorithm is based on 
+    // NED frame
     // fins_msg.data = upper_p;
     fins_msg.data = -upper_p;
     fin0_pub_.publish(fins_msg);

@@ -93,6 +93,14 @@ add_library(auv_base_controller
   src/AUVControllerXF.cpp
 )
 
+add_library(auv_pid_controller
+  src/Common.cpp
+  src/AUVPIDController.cpp
+  src/PIDController.cpp
+  src/AUVPIDControllerXF.cpp
+  src/AUVPIDControllerROS.cpp
+)
+
 add_library(file_writer
   src/file_writer.cpp
 ) 
@@ -109,10 +117,18 @@ add_executable(auv_controller_test_node
   test/AUVControllerTest.cpp
 )
 
+add_executable(auv_pid_controller_test_node
+  test/AUVPIDControllerTest.cpp
+)
+
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_writer ${catkin_LIBRARIES})
