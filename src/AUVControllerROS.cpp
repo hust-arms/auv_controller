@@ -142,7 +142,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
 
    fwdfin_ = 0.0; backfin_ = 0.0; vertfin_ = 0.0; 
 
-   is_ctrl_run_ = false; is_emerg_run_ = false;
+   // is_ctrl_run_ = false; is_emerg_run_ = false;
 
    ctrl_state_ = AUVCtrlState::STANDBY;
 
@@ -180,7 +180,7 @@ AUVControllerROS::~AUVControllerROS(){
 void AUVControllerROS::startControl(){
     ROS_INFO("Start control thread & publish thread");
     ctrl_state_ = AUVCtrlState::CTRL;
-    is_ctrl_run_ = true; is_emerg_run_ = false;
+    // is_ctrl_run_ = true; is_emerg_run_ = false;
 #ifdef SM_CTRL
     ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::velControlThread, this));
@@ -195,7 +195,8 @@ void AUVControllerROS::controlThread(){
 
     boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
     while(nh.ok()){
-        while(wait_for_wake || !is_ctrl_run_){
+        // while(wait_for_wake || !is_ctrl_run_){
+        while(wait_for_wake || !(ctrl_state_ == AUVCtrlState::CTRL)){
             // if(debug_){
             //     std::lock_guard<std::mutex> guard(print_mutex_);
             //     printf("Control thread is suspending\n");
