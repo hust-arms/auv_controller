@@ -19,6 +19,7 @@
 #include <boost/timer.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <boost/make_unique.hpp>
 
 /* ros dependencies */
 #include <ros/ros.h>
@@ -40,7 +41,11 @@
 #include "file_writer.h"
 #include "PIDController.h"
 
+
 namespace auv_controller{
+
+// typedef boost::unique_ptr<boost::thread> ThreadPtr;
+
 /**
  * @brief AUV controller ROS wrapper class
  */
@@ -76,6 +81,11 @@ private:
      * @brief Publish thread
      */ 
     void publishThread();
+
+    /**
+     * @brief Emergency event check
+     */ 
+    void emEventCheckThread();
 
     /**
      * @brief Wake control thread
@@ -295,9 +305,9 @@ private:
         STANDBY,
         OPENCTRL,
         CTRL,
-        EMERGENCY_LEVEL_1,
-        EMERGENCY_LEVEL_2,
-        EMERGENCY_LEVEL_3
+        EMERGENCY_LEVEL1,
+        EMERGENCY_LEVEL2,
+        EMERGENCY_LEVEL3
     }; // AUVCtrlState
 
     /**
@@ -330,9 +340,9 @@ private:
         ALTIMETER_SALTATION_OR_STUCK,
 
         /* Level 3 emergency states */
-        ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD,
-        ACCESS_BOTTOM_HEIGHT_LEVEL2_THRESHOLD,
-        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL2_THRESHOLD,
+        ACCESS_DESIRED_DEPTH_LEVEL3_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL3_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL3_THRESHOLD,
         ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD,
         ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD,
         YAW_LEVEL3_SALTATION
@@ -357,6 +367,7 @@ private:
     double ctrl_dt_; // control period
     double pub_dt_; // publish period
     double stable_wait_t_; // time to wait after vehicle is stable
+    double em_check_dt_; // emergency check period
 
     uint32_t seq_;
     std::string base_frame_; // base frame of vehicle
@@ -382,16 +393,26 @@ private:
     double upper_p_, upper_s_, lower_p_, lower_s_; // for X type rudder
     double rpm_, ori_rpm_;
 
+    /* Var for emergency */
+    double prev_yaw_;
+
     /* Threads */
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
     boost::thread* pub_thread_;  
     boost::thread* vel_ctrl_thread_;  
+    boost::thread* em_check_thread_;
+    // ThreadPtr ctrl_thread_;
+    // ThreadPtr pub_thread_;
+    // ThreadPtr vel_ctrl_thread_;
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
+
+    /* Source lock for emergency event states */
+    boost::recursive_mutex em_event_mutex_;
 
     /* Source lock of sensor */
     std::mutex imu_mutex_, pressure_mutex_, posegt_mutex_, dvl_mutex_;

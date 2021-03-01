@@ -41,7 +41,8 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    private_nh.param("rpm", rpm_, 1400.0);
    ori_rpm_ = rpm_;
    private_nh.param("control_period", ctrl_dt_, 0.1);
-   private_nh.param("publish_period", pub_dt_, 0.1);
+   private_nh.param("publish_period", pub_dt_, 0.2);
+   private_nh.param("emergency_check_period", em_check_dt_, 1.0);
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_y", y_d_, 0.0);
@@ -145,7 +146,9 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    // is_ctrl_run_ = false; is_emerg_run_ = false;
 
    ctrl_state_ = AUVCtrlState::STANDBY;
-   em_event_ = EergencyEvent::NO_EM_EVENT;
+   em_event_ = EmergencyEvent::NO_EM_EVENT;
+
+   prev_yaw_ = 0.0;
 
    ROS_INFO("Finish controller initialization\n");
 }
@@ -172,6 +175,14 @@ AUVControllerROS::~AUVControllerROS(){
         ctrl_thread_ = nullptr;
     }
 
+    if(em_check_thread_ != nullptr)
+    {
+        em_check_thread_->interrupt();
+        em_check_thread_->join();
+        delete em_check_thread_;
+        em_check_thread_ = nullptr;
+    }
+
     if(controller_ != nullptr){
         delete controller_;
         controller_ = nullptr;
@@ -185,8 +196,12 @@ void AUVControllerROS::startControl(){
 #ifdef SM_CTRL
     ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::velControlThread, this));
+    // ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::controlThread, this));
+    // vel_ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::velControlThread, this));
 #endif
+    em_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emEventCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
+    // pub_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::publishThread, this));
 }
 
 void AUVControllerROS::controlThread(){
@@ -441,6 +456,117 @@ void AUVControllerROS::publishThread(){
 
         boost::this_thread::sleep(boost::posix_time::milliseconds(pub_dt_ * 1000));
     };
+}
+
+void AUVControllerROS::emEventCheckThread()
+{
+    ros::NodeHandle nh;
+    while(nh.ok())
+    {
+        /* Check depth */
+        double cur_depth = -getGlobalZ();
+        double desired_depth = getDesiredDepth();
+        double delta_depth = cur_depth - desired_depth;
+        if(delta_depth >= 2.0 && delta_depth < 4.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+        }
+        else if(delta_depth >= 4.0 && delta_depth < 8.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+        }
+        else if(delta_depth >= 8.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL3_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+        }
+      
+        /* Check bottom height */
+        // Reserved for implementation due to that altimeter is not supported.
+        //
+        
+        /* Check forward obstacle */
+        // Reserved for implementation due to that forward obstacle sensing is not supported.
+        //
+        
+        /* Check roll angle */
+        double cur_roll_abs = abs(getRoll()) * rad2degree; // transfer rad to degree
+        if(cur_roll_abs >= 25.0 && cur_roll_abs < 30.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL1_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+        }
+        else if(cur_roll_abs >= 30.0 && cur_roll_abs < 35.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL2_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+        }
+        else if(cur_roll_abs >= 35.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+        }
+
+        /* Check pitch angle */
+        double cur_pitch_abs = abs(getPitch()) * rad2degree;
+        if(cur_pitch_abs >= 20.0 && cur_pitch_abs < 25.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL1_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+        }
+        else if(cur_pitch_abs >= 25.0 && cur_pitch_abs < 30.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL2_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+        }
+        else if(cur_pitch_abs >= 30.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+        }
+
+        /* Check yaw angle saltation */
+        double cur_yaw = getYaw();
+        double delta_yaw_abs = abs(cur_yaw - prev_yaw_) * rad2degree;
+        if(delta_yaw_abs >= 20.0 && delta_yaw_abs < 25.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::YAW_LEVEL1_SALTATION;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+        }
+        else if(delta_yaw_abs >= 25.0 && delta_yaw_abs < 30.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::YAW_LEVEL2_SALTATION;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+
+        }
+        else if(delta_yaw_abs >= 30.0)
+        {
+            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+            em_event_ = EmergencyEvent::YAW_LEVEL3_SALTATION;
+            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+        }
+
+        /* Reserved for trajectory following deviation check */
+        
+        /* Reserved for vertical rudder stucking check */
+        
+        /* Reserved for lateral rudder stucking check */
+
+        boost::this_thread::sleep(boost::posix_time::milliseconds(em_check_dt_ * 1000));
+    }
 }
 
 void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double backfin, double rpm){
