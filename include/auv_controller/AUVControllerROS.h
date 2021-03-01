@@ -295,8 +295,48 @@ private:
         STANDBY,
         OPENCTRL,
         CTRL,
-        EMERGENCY
+        EMERGENCY_LEVEL_1,
+        EMERGENCY_LEVEL_2,
+        EMERGENCY_LEVEL_3
     }; // AUVCtrlState
+
+    /**
+     * @brief AUV Emergency event
+     */
+    enum class EmergencyEvent
+    {
+        /* Common */
+        NO_EM_EVENT,
+
+        /* Level 1 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL1_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL1_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL1_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL1_THRESHOLD,
+        YAW_LEVEL1_SALTATION,
+        ACCESS_TRAJECTORY_DEVIATION_LEVEL1_THRESHOLD,
+        VERTICAL_RUDDER_STUCK,
+        LATERAL_RUDDER_STUCK,
+
+        /* Level 2 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL2_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL2_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL2_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL2_THRESHOLD,
+        YAW_LEVEL2_SALTATION,
+        ACCESS_TRAJECTORY_DEVIATION_LEVEL2_THRESHOLD,
+        ALTIMETER_SALTATION_OR_STUCK,
+
+        /* Level 3 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL2_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL2_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD,
+        YAW_LEVEL3_SALTATION
+    }; // EmergencyEvent
 
 private:
     /* Controller */
@@ -322,6 +362,8 @@ private:
     std::string base_frame_; // base frame of vehicle
 
     AUVCtrlState ctrl_state_;
+    EmergencyEvent em_event_;
+
     bool is_ctrl_vel_, is_wait_stable_;
 
     /* Vehicle states */
@@ -365,7 +407,7 @@ private:
 
     /* flags */
     bool with_ff_, x_type_;
-    bool is_ctrl_run_, is_emerg_run_;
+    // bool is_ctrl_run_, is_emerg_run_;
     bool debug_;
 }; // AUVControllerROS
 }; // ns

@@ -145,6 +145,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    // is_ctrl_run_ = false; is_emerg_run_ = false;
 
    ctrl_state_ = AUVCtrlState::STANDBY;
+   em_event_ = EergencyEvent::NO_EM_EVENT;
 
    ROS_INFO("Finish controller initialization\n");
 }
