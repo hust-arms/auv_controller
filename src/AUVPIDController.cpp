@@ -79,7 +79,7 @@ void AUVPIDController::setCtrlParams(double kp, double ki, double kd, unsigned i
  */
 void AUVPIDController::defaultInit(){
     setAUVBodyParams(228.486, 3.145, 2239.163, 2295.142, 0, 0, 0, 1.64, 0, 0.015, 2.923, 150.3313, 150.3313);
-    setCtrlParams(0.03, 0.0, 5.0, 0.03, 0.0, 5.0, 0.03, 0.0, 5.0, 0.03, 0.0, 5.0); // x type rudder
+    setCtrlParams(0.06, 0.0, 3.0, 0.06, 0.0, 3.0, 0.06, 0.0, 0.0, 0.06, 0.0, 3.0); // x type rudder
     //
     depth_controller_ = boost::make_shared<PIDController>(pid_ctrl_.z_.kp_, pid_ctrl_.z_.ki_, pid_ctrl_.z_.kd_);
     latdev_controller_ = boost::make_shared<PIDController>(pid_ctrl_.y_.kp_, pid_ctrl_.y_.ki_, pid_ctrl_.y_.kd_);

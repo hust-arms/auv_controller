@@ -31,7 +31,7 @@ void AUVPIDControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUV
 
     /* Depth PID control */
     // double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, 4 * this->body_.l_);
-    double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, this->body_.l_);
+    double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, 2 * this->body_.l_);
     this->depth_controller_->setTargetParams(ref_pitch);
     this->deltas_ = this->depth_controller_->positionalPID(sensor.pitch_);
     printf("Ref pitch: %f, Current pitch: %f\n", ref_pitch, sensor.pitch_);

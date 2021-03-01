@@ -41,7 +41,7 @@ AUVPIDControllerROS::AUVPIDControllerROS(std::string auv_name, bool with_ff, boo
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_y", y_d_, 0.0);
-   private_nh.param("desired_depth", depth_d_, 20.0);
+   private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
    private_nh.param("desired_pitch", pitch_d_, pitch_d);
