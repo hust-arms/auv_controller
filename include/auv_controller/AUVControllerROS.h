@@ -103,6 +103,11 @@ private:
     void emRollCheckThread();
 
     /**
+     * @brief Pitch emergency check thread
+     */ 
+    void emPitchCheckThread();
+
+    /**
      * @brief Wake depth emergency check thread
      */ 
     void wakeEMDepthCheckThread(const ros::TimerEvent& event);
@@ -112,6 +117,11 @@ private:
      */
     void wakeEMRollCheckThread(const ros::TimerEvent& event);
 
+    /**
+     * @brief Roll emergency check thread
+     */
+    void wakeEMPitchCheckThread(const ros::TimerEvent& event);
+    
     /**
      * @brief Apply actuator input for model without front fins and model with front fins 
      */
@@ -427,18 +437,22 @@ private:
     /* Emergency check threads */
     boost::thread* em_depth_check_thread_;
     boost::thread* em_roll_check_thread_;
+    boost::thread* em_pitch_check_thread_;
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
     boost::condition_variable_any em_depth_check_cond_;
     boost::condition_variable_any em_roll_check_cond_;
+    boost::condition_variable_any em_pitch_check_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
-    boost::recursive_mutex em_depth_check_mutex_;
-    boost::recursive_mutex em_roll_check_mutex_;
 
     /* Source lock for emergency event states */
+    boost::recursive_mutex em_depth_check_mutex_;
+    boost::recursive_mutex em_roll_check_mutex_;
+    boost::recursive_mutex em_pitch_check_mutex_;
+
     boost::recursive_mutex em_event_mutex_;
 
     /* Source lock of sensor */

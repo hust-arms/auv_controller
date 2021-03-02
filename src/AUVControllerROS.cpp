@@ -193,6 +193,14 @@ AUVControllerROS::~AUVControllerROS(){
         em_roll_check_thread_ = nullptr;
     }
 
+    if(em_pitch_check_thread_ != nullptr)
+    {
+        em_pitch_check_thread_->interrupt();
+        em_pitch_check_thread_->join();
+        delete em_pitch_check_thread_;
+        em_pitch_check_thread_ = nullptr;
+    }
+    
     if(controller_ != nullptr){
         delete controller_;
         controller_ = nullptr;
@@ -212,6 +220,7 @@ void AUVControllerROS::startControl(){
 #endif
     em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
     em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
+    em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emPitchCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
     // pub_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::publishThread, this));
 }
@@ -399,8 +408,14 @@ void AUVControllerROS::wakeEMDepthCheckThread(const ros::TimerEvent& event){
     em_depth_check_cond_.notify_one();
 }
 
+/////////////////////////////////////
 void AUVControllerROS::wakeEMRollCheckThread(const ros::TimerEvent& event){
     em_roll_check_cond_.notify_one();
+}
+
+/////////////////////////////////////
+void AUVControllerROS::wakeEMPitchCheckThread(const ros::TimerEvent& event){
+    em_pitch_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
@@ -662,6 +677,97 @@ void AUVControllerROS::emRollCheckThread()
                 // }
                 wait_for_wake = true;
                 em_roll_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMRollCheckThread, this);
+            }
+        }
+    }
+}
+
+/////////////////////////////////////
+void AUVControllerROS::emPitchCheckThread()
+{
+    ros::NodeHandle nh;
+    ros::Timer em_pitch_check_timer;
+    bool wait_for_wake = true;
+
+    int check_cnt = 0;
+
+    while(nh.ok())
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(em_pitch_check_mutex_);
+        // Wait for wake
+        while(wait_for_wake){
+            em_pitch_check_cond_.wait(lock);
+            wait_for_wake = false;                                                       
+        }
+        lock.unlock();
+
+        ros::Time check_start_t = ros::Time::now();
+        double cur_pitch = abs(getPitch()) * rad2degree;
+
+        // If depth access the threshold but not access check count, only add check count 
+        if(cur_pitch >= 20.0 && check_cnt < 2) 
+        {
+            ++check_cnt; 
+        }
+        // If depth access the threshold and access check count, check the emergency level 
+        else if(cur_pitch >= 20.0 && check_cnt == 2)
+        {
+            if(cur_pitch < 25.0)
+            {
+                // If current state level is lower than level1 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL1_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+                }
+            }
+            if(cur_pitch >= 25.0 && cur_pitch < 30.0)
+            {
+                // If current state level is lower than level2 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL2_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+                }
+            }
+            if(cur_pitch >= 30.0)
+            {
+                // If current state level is lower than level3 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+                }
+
+            }
+
+            // reset check count
+            check_cnt = 0;
+        }
+        else // inerrupt depth emergency check
+        {
+            // reset check count
+            check_cnt = 0;
+        }
+
+        lock.lock();
+
+
+        if(em_check_dt_ > 0.0){
+            ros::Duration sleep_time = (check_start_t + ros::Duration(em_check_dt_)) - ros::Time::now();
+            if(sleep_time > ros::Duration(0.0)){
+                // if(debug_){
+                //     std::lock_guard<std::mutex> guard(print_mutex_);
+                //     printf("Control thread is waiting for wake\n");
+                // }
+                wait_for_wake = true;
+                em_pitch_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMPitchCheckThread, this);
             }
         }
     }
