@@ -22,6 +22,7 @@
 // #define XRUDDER_TEST
 
 namespace auv_controller{
+/////////////////////////////////////
 AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_type, bool debug) : 
     with_ff_(with_ff), x_type_(x_type), debug_(debug){
    ros::NodeHandle private_nh("~"); // private ros node handle
@@ -42,7 +43,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    ori_rpm_ = rpm_;
    private_nh.param("control_period", ctrl_dt_, 0.1);
    private_nh.param("publish_period", pub_dt_, 0.2);
-   private_nh.param("emergency_check_period", em_check_dt_, 1.0);
+   private_nh.param("emergency_check_period", em_check_dt_, 0.5);
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_y", y_d_, 0.0);
@@ -153,6 +154,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    ROS_INFO("Finish controller initialization\n");
 }
 
+/////////////////////////////////////
 AUVControllerROS::~AUVControllerROS(){
     if(pub_thread_ != nullptr){
         pub_thread_->interrupt();
@@ -175,12 +177,20 @@ AUVControllerROS::~AUVControllerROS(){
         ctrl_thread_ = nullptr;
     }
 
-    if(em_check_thread_ != nullptr)
+    if(em_depth_check_thread_ != nullptr)
     {
-        em_check_thread_->interrupt();
-        em_check_thread_->join();
-        delete em_check_thread_;
-        em_check_thread_ = nullptr;
+        em_depth_check_thread_->interrupt();
+        em_depth_check_thread_->join();
+        delete em_depth_check_thread_;
+        em_depth_check_thread_ = nullptr;
+    }
+
+    if(em_roll_check_thread_ != nullptr)
+    {
+        em_roll_check_thread_->interrupt();
+        em_roll_check_thread_->join();
+        delete em_roll_check_thread_;
+        em_roll_check_thread_ = nullptr;
     }
 
     if(controller_ != nullptr){
@@ -189,6 +199,7 @@ AUVControllerROS::~AUVControllerROS(){
     }
 }
 
+/////////////////////////////////////
 void AUVControllerROS::startControl(){
     ROS_INFO("Start control thread & publish thread");
     ctrl_state_ = AUVCtrlState::CTRL;
@@ -199,11 +210,13 @@ void AUVControllerROS::startControl(){
     // ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::controlThread, this));
     // vel_ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::velControlThread, this));
 #endif
-    em_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emEventCheckThread, this));
+    em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
+    em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
     // pub_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::publishThread, this));
 }
 
+/////////////////////////////////////
 void AUVControllerROS::controlThread(){
     ros::NodeHandle nh;
     ros::Timer ctrl_timer;
@@ -333,6 +346,7 @@ void AUVControllerROS::controlThread(){
     }
 }
 
+/////////////////////////////////////
 void AUVControllerROS::velControlThread(){
     ros::NodeHandle nh;
     while(nh.ok()){
@@ -375,10 +389,21 @@ void AUVControllerROS::velControlThread(){
     boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
 }
 
+/////////////////////////////////////
 void AUVControllerROS::wakeControlThread(const ros::TimerEvent& event){
     ctrl_cond_.notify_one();
 }
 
+/////////////////////////////////////
+void AUVControllerROS::wakeEMDepthCheckThread(const ros::TimerEvent& event){
+    em_depth_check_cond_.notify_one();
+}
+
+void AUVControllerROS::wakeEMRollCheckThread(const ros::TimerEvent& event){
+    em_roll_check_cond_.notify_one();
+}
+
+/////////////////////////////////////
 void AUVControllerROS::publishThread(){
     ros::NodeHandle nh;
 
@@ -458,117 +483,191 @@ void AUVControllerROS::publishThread(){
     };
 }
 
-void AUVControllerROS::emEventCheckThread()
+/////////////////////////////////////
+void AUVControllerROS::emDepthCheckThread()
 {
     ros::NodeHandle nh;
+    ros::Timer em_depth_check_timer;
+    bool wait_for_wake = true;
+
+    int check_cnt = 0;
+
     while(nh.ok())
     {
-        /* Check depth */
+        boost::unique_lock<boost::recursive_mutex> lock(em_depth_check_mutex_);
+        // Wait for wake
+        while(wait_for_wake){
+            em_depth_check_cond_.wait(lock);
+            wait_for_wake = false;                                                       
+        }
+        lock.unlock();
+
+        ros::Time check_start_t = ros::Time::now();
         double cur_depth = -getGlobalZ();
         double desired_depth = getDesiredDepth();
         double delta_depth = cur_depth - desired_depth;
-        if(delta_depth >= 2.0 && delta_depth < 4.0)
+
+        // If depth access the threshold but not access check count, only add check count 
+        if(delta_depth >= 2.0 && check_cnt < 2) 
         {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+            ++check_cnt; 
         }
-        else if(delta_depth >= 4.0 && delta_depth < 8.0)
+        // If depth access the threshold and access check count, check the emergency level 
+        else if(delta_depth >= 2.0 && check_cnt == 2)
         {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+            if(delta_depth < 4.0)
+            {
+                // If current state level is lower than level1 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+                }
+            }
+            if(delta_depth >= 4.0 && delta_depth < 8.0)
+            {
+                // If current state level is lower than level2 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+                }
+            }
+            if(delta_depth >= 8.0)
+            {
+                // If current state level is lower than level3 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL3_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+                }
+
+            }
+
+            // reset check count
+            check_cnt = 0;
         }
-        else if(delta_depth >= 8.0)
+        else // inerrupt depth emergency check
         {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL3_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
-        }
-      
-        /* Check bottom height */
-        // Reserved for implementation due to that altimeter is not supported.
-        //
-        
-        /* Check forward obstacle */
-        // Reserved for implementation due to that forward obstacle sensing is not supported.
-        //
-        
-        /* Check roll angle */
-        double cur_roll_abs = abs(getRoll()) * rad2degree; // transfer rad to degree
-        if(cur_roll_abs >= 25.0 && cur_roll_abs < 30.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL1_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
-        }
-        else if(cur_roll_abs >= 30.0 && cur_roll_abs < 35.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL2_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
-        }
-        else if(cur_roll_abs >= 35.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+            // reset check count
+            check_cnt = 0;
         }
 
-        /* Check pitch angle */
-        double cur_pitch_abs = abs(getPitch()) * rad2degree;
-        if(cur_pitch_abs >= 20.0 && cur_pitch_abs < 25.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL1_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
-        }
-        else if(cur_pitch_abs >= 25.0 && cur_pitch_abs < 30.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL2_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
-        }
-        else if(cur_pitch_abs >= 30.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
-        }
+        lock.lock();
 
-        /* Check yaw angle saltation */
-        double cur_yaw = getYaw();
-        double delta_yaw_abs = abs(cur_yaw - prev_yaw_) * rad2degree;
-        if(delta_yaw_abs >= 20.0 && delta_yaw_abs < 25.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::YAW_LEVEL1_SALTATION;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
-        }
-        else if(delta_yaw_abs >= 25.0 && delta_yaw_abs < 30.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::YAW_LEVEL2_SALTATION;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
 
+        if(em_check_dt_ > 0.0){
+            ros::Duration sleep_time = (check_start_t + ros::Duration(em_check_dt_)) - ros::Time::now();
+            if(sleep_time > ros::Duration(0.0)){
+                // if(debug_){
+                //     std::lock_guard<std::mutex> guard(print_mutex_);
+                //     printf("Control thread is waiting for wake\n");
+                // }
+                wait_for_wake = true;
+                em_depth_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMDepthCheckThread, this);
+            }
         }
-        else if(delta_yaw_abs >= 30.0)
-        {
-            boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-            em_event_ = EmergencyEvent::YAW_LEVEL3_SALTATION;
-            ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
-        }
-
-        /* Reserved for trajectory following deviation check */
-        
-        /* Reserved for vertical rudder stucking check */
-        
-        /* Reserved for lateral rudder stucking check */
-
-        boost::this_thread::sleep(boost::posix_time::milliseconds(em_check_dt_ * 1000));
     }
 }
 
+/////////////////////////////////////
+void AUVControllerROS::emRollCheckThread()
+{
+    ros::NodeHandle nh;
+    ros::Timer em_roll_check_timer;
+    bool wait_for_wake = true;
+
+    int check_cnt = 0;
+
+    while(nh.ok())
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(em_roll_check_mutex_);
+        // Wait for wake
+        while(wait_for_wake){
+            em_roll_check_cond_.wait(lock);
+            wait_for_wake = false;                                                       
+        }
+        lock.unlock();
+
+        ros::Time check_start_t = ros::Time::now();
+        double cur_roll = abs(getRoll()) * rad2degree;
+
+        // If depth access the threshold but not access check count, only add check count 
+        if(cur_roll >= 25.0 && check_cnt < 2) 
+        {
+            ++check_cnt; 
+        }
+        // If depth access the threshold and access check count, check the emergency level 
+        else if(cur_roll >= 25.0 && check_cnt == 2)
+        {
+            if(cur_roll < 30.0)
+            {
+                // If current state level is lower than level1 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL1_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+                }
+            }
+            if(cur_roll >= 30.0 && cur_roll < 35.0)
+            {
+                // If current state level is lower than level2 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL2_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+                }
+            }
+            if(cur_roll >= 35.0)
+            {
+                // If current state level is lower than level3 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+                }
+
+            }
+
+            // reset check count
+            check_cnt = 0;
+        }
+        else // inerrupt depth emergency check
+        {
+            // reset check count
+            check_cnt = 0;
+        }
+
+        lock.lock();
+
+
+        if(em_check_dt_ > 0.0){
+            ros::Duration sleep_time = (check_start_t + ros::Duration(em_check_dt_)) - ros::Time::now();
+            if(sleep_time > ros::Duration(0.0)){
+                // if(debug_){
+                //     std::lock_guard<std::mutex> guard(print_mutex_);
+                //     printf("Control thread is waiting for wake\n");
+                // }
+                wait_for_wake = true;
+                em_roll_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMRollCheckThread, this);
+            }
+        }
+    }
+}
+
+/////////////////////////////////////
 void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double backfin, double rpm){
     std_msgs::Header header;
     header.stamp.setNow(ros::Time::now());
@@ -629,6 +728,7 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
     }
 }
 
+/////////////////////////////////////
 void AUVControllerROS::applyActuatorInput(double upper_p, double upper_s, double lower_p, double lower_s, double rpm)
 {
 
@@ -664,6 +764,7 @@ void AUVControllerROS::applyActuatorInput(double upper_p, double upper_s, double
     fin3_pub_.publish(fins_msg);
 }
 
+/////////////////////////////////////
 bool AUVControllerROS::isStable(){
     double cur_depth = -getGlobalZ();
     double cur_y = getGlobalY();
@@ -677,6 +778,7 @@ bool AUVControllerROS::isStable(){
     return false;
 }
 
+/////////////////////////////////////
 void AUVControllerROS::imuCb(const sensor_msgs::Imu::ConstPtr& msg) 
 {
     // PoseStamped::Quaternion to tf::Quaternion
@@ -692,12 +794,14 @@ void AUVControllerROS::imuCb(const sensor_msgs::Imu::ConstPtr& msg)
     yaw_dot_ = msg->angular_velocity.z;
 }
 
+/////////////////////////////////////
 void AUVControllerROS::pressureCb(const sensor_msgs::FluidPressure::ConstPtr& msg) // For pressure sensor
 {
     std::lock_guard<std::mutex> guard(pressure_mutex_);
     depth_ = static_cast<double>((msg->fluid_pressure - 101) / 10.1) - 0.25;
 }
 
+/////////////////////////////////////
 void AUVControllerROS::posegtCb(const nav_msgs::Odometry::ConstPtr& msg) // For pose sensor
 {
     std::lock_guard<std::mutex> guard(posegt_mutex_);
@@ -706,6 +810,7 @@ void AUVControllerROS::posegtCb(const nav_msgs::Odometry::ConstPtr& msg) // For 
     z_ = msg->pose.pose.position.z;
 }
 
+/////////////////////////////////////
 void AUVControllerROS::dvlCb(const uuv_sensor_ros_plugins_msgs::DVL::ConstPtr& msg) // For DVL
 {
     std::lock_guard<std::mutex> guard(dvl_mutex_);
@@ -714,6 +819,7 @@ void AUVControllerROS::dvlCb(const uuv_sensor_ros_plugins_msgs::DVL::ConstPtr& m
     w_ = msg->velocity.z;
 }
 
+/////////////////////////////////////
 void AUVControllerROS::desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg)
 {
     std::lock_guard<std::mutex> guard(desired_mutex_);
@@ -724,7 +830,7 @@ void AUVControllerROS::desiredParamshCb(const armsauv_msgs::DesiredParams::Const
     u_d_ = msg->dlinvelx;
 }
 
-
+/////////////////////////////////////
 void AUVControllerROS::printAUVDynamicParams(){
     std::stringstream ss;
     ss << "AUV dynamic parameters: {";
@@ -733,6 +839,7 @@ void AUVControllerROS::printAUVDynamicParams(){
     ROS_INFO_STREAM(ss.str());
 }
 
+/////////////////////////////////////
 void AUVControllerROS::printAUVCtrlParams(){
     std::stringstream ss;
     ss << "AUV control parameters: {";
@@ -741,6 +848,7 @@ void AUVControllerROS::printAUVCtrlParams(){
     ROS_INFO_STREAM(ss.str());
 }
 
+/////////////////////////////////////
 void AUVControllerROS::printAUVForceParams(){
     std::stringstream ss;
     ss << "AUV Force parameters: {";
@@ -749,6 +857,7 @@ void AUVControllerROS::printAUVForceParams(){
     ROS_INFO_STREAM(ss.str());
 }
 
+/////////////////////////////////////
 void AUVControllerROS::printAUVXForceParams(){
     std::stringstream ss;
     ss << "AUV XForce parameters: {";
@@ -757,6 +866,7 @@ void AUVControllerROS::printAUVXForceParams(){
     ROS_INFO_STREAM(ss.str());
 }
 
+/////////////////////////////////////
 void AUVControllerROS::printAUVBodyParams(){
     std::stringstream ss;
     ss << "AUV body parameters: {";
