@@ -108,6 +108,11 @@ private:
     void emPitchCheckThread();
 
     /**
+     * @brief Yaw emergency check thread
+     */ 
+    void emYawCheckThread();
+
+    /**
      * @brief Wake depth emergency check thread
      */ 
     void wakeEMDepthCheckThread(const ros::TimerEvent& event);
@@ -122,6 +127,11 @@ private:
      */
     void wakeEMPitchCheckThread(const ros::TimerEvent& event);
     
+    /**
+     * @brief Yaw emergency check thread
+     */
+    void wakeEMYawCheckThread(const ros::TimerEvent& event);
+
     /**
      * @brief Apply actuator input for model without front fins and model with front fins 
      */
@@ -438,12 +448,14 @@ private:
     boost::thread* em_depth_check_thread_;
     boost::thread* em_roll_check_thread_;
     boost::thread* em_pitch_check_thread_;
+    boost::thread* em_yaw_check_thread_;
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
     boost::condition_variable_any em_depth_check_cond_;
     boost::condition_variable_any em_roll_check_cond_;
     boost::condition_variable_any em_pitch_check_cond_;
+    boost::condition_variable_any em_yaw_check_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
@@ -452,6 +464,7 @@ private:
     boost::recursive_mutex em_depth_check_mutex_;
     boost::recursive_mutex em_roll_check_mutex_;
     boost::recursive_mutex em_pitch_check_mutex_;
+    boost::recursive_mutex em_yaw_check_mutex_;
 
     boost::recursive_mutex em_event_mutex_;
 

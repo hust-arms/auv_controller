@@ -16,10 +16,11 @@
 #include "auv_controller/AUVControllerROS.h"
 
 /* Test macro */
-#define SM_CTRL
+// #define SM_CTRL
 // #define THRUST_TEST
 // #define SPIRAL_TEST
 // #define XRUDDER_TEST
+# define EM_TEST
 
 namespace auv_controller{
 /////////////////////////////////////
@@ -201,6 +202,14 @@ AUVControllerROS::~AUVControllerROS(){
         em_pitch_check_thread_ = nullptr;
     }
     
+    if(em_yaw_check_thread_ != nullptr)
+    {
+        em_yaw_check_thread_->interrupt();
+        em_yaw_check_thread_->join();
+        delete em_yaw_check_thread_;
+        em_yaw_check_thread_ = nullptr;
+    }
+
     if(controller_ != nullptr){
         delete controller_;
         controller_ = nullptr;
@@ -221,6 +230,7 @@ void AUVControllerROS::startControl(){
     em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
     em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
     em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emPitchCheckThread, this));
+    em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emYawCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
     // pub_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::publishThread, this));
 }
@@ -419,6 +429,11 @@ void AUVControllerROS::wakeEMPitchCheckThread(const ros::TimerEvent& event){
 }
 
 /////////////////////////////////////
+void AUVControllerROS::wakeEMYawCheckThread(const ros::TimerEvent& event){
+    em_yaw_check_cond_.notify_one();
+}
+
+/////////////////////////////////////
 void AUVControllerROS::publishThread(){
     ros::NodeHandle nh;
 
@@ -451,6 +466,44 @@ void AUVControllerROS::publishThread(){
             backfin = 0.0;
             rpm = 1900;
 #endif
+
+#ifdef EM_TEST
+            vertfin = 0.0 / 57.3;
+            fwdfin = 30.0 / 57.3; 
+            backfin = -30.0 / 57.3; 
+            rpm = 1900; 
+#endif
+            // If current state is in level1 emergency, stop action
+            if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL1)
+            {
+                vertfin = 0.0;
+                fwdfin = 0.0;
+                backfin = 0.0;
+                rpm = 0.0;
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("Level1 emergency process!\n");
+            }
+            // If current state is in level2 emergency, set max rudder and wait for AUV come-up
+            if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL2)
+            {
+                vertfin = 0.0 / 57.3;
+                fwdfin = 30 / 57.3;
+                backfin = -30 / 57.3;
+                rpm = 0.0;
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("Level2 emergency process!\n");
+            }
+            // If current state is in level3 emergency, set max rudder and reject load, then wait for AUV come-up
+            if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL3)
+            {
+                vertfin = 0.0 / 57.3;
+                fwdfin = 30 / 57.3;
+                backfin = -30 / 57.3;
+                rpm = 0.0;
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("Level3 emergency process!\n");
+                /* Reserved for load rejection action */
+            }
         }
         else
         {
@@ -768,6 +821,87 @@ void AUVControllerROS::emPitchCheckThread()
                 // }
                 wait_for_wake = true;
                 em_pitch_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMPitchCheckThread, this);
+            }
+        }
+    }
+}
+
+/////////////////////////////////////
+void AUVControllerROS::emYawCheckThread()
+{
+    ros::NodeHandle nh;
+    ros::Timer em_yaw_check_timer;
+    bool wait_for_wake = true;
+
+    double prev_yaw = getYaw();
+    double cur_yaw = prev_yaw;
+
+    while(nh.ok())
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(em_yaw_check_mutex_);
+        // Wait for wake
+        while(wait_for_wake){
+            em_yaw_check_cond_.wait(lock);
+            wait_for_wake = false;                                                       
+        }
+        lock.unlock();
+
+        ros::Time check_start_t = ros::Time::now();
+        double cur_yaw = getYaw();
+        double delta_yaw = abs(cur_yaw - prev_yaw) * rad2degree;
+
+        // If depth access the threshold and access check count, check the emergency level 
+        if(delta_yaw >= 25.0)
+        {
+            if(delta_yaw < 30.0)
+            {
+                // If current state level is lower than level1 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::YAW_LEVEL1_SALTATION;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+                }
+            }
+            if(delta_yaw >= 30.0 && delta_yaw < 35.0)
+            {
+                // If current state level is lower than level2 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::YAW_LEVEL2_SALTATION;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL2;
+                }
+            }
+            if(delta_yaw >= 35.0)
+            {
+                // If current state level is lower than level3 emergency, update event and level
+                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                {
+                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                    em_event_ = EmergencyEvent::YAW_LEVEL3_SALTATION;
+                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL3;
+                }
+
+            }
+        }
+        prev_yaw = cur_yaw;
+
+        lock.lock();
+
+
+        if(em_check_dt_ > 0.0){
+            ros::Duration sleep_time = (check_start_t + ros::Duration(2 * em_check_dt_)) - ros::Time::now();
+            if(sleep_time > ros::Duration(0.0)){
+                // if(debug_){
+                //     std::lock_guard<std::mutex> guard(print_mutex_);
+                //     printf("Control thread is waiting for wake\n");
+                // }
+                wait_for_wake = true;
+                em_yaw_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMYawCheckThread, this);
             }
         }
     }
