@@ -82,15 +82,35 @@ private:
      */ 
     void publishThread();
 
-    /**
-     * @brief Emergency event check
-     */ 
-    void emEventCheckThread();
+    // /**
+    //  * @brief Emergency event check
+    //  */ 
+    // void emEventCheckThread();
 
     /**
      * @brief Wake control thread
      */
     void wakeControlThread(const ros::TimerEvent& event);
+
+    /**
+     * @brief Depth emergency check thread
+     */ 
+    void emDepthCheckThread();
+
+    /**
+     * @brief Roll emergency check thread
+     */ 
+    void emRollCheckThread();
+
+    /**
+     * @brief Wake depth emergency check thread
+     */ 
+    void wakeEMDepthCheckThread(const ros::TimerEvent& event);
+
+    /**
+     * @brief Roll emergency check thread
+     */
+    void wakeEMRollCheckThread(const ros::TimerEvent& event);
 
     /**
      * @brief Apply actuator input for model without front fins and model with front fins 
@@ -400,16 +420,23 @@ private:
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
     boost::thread* pub_thread_;  
     boost::thread* vel_ctrl_thread_;  
-    boost::thread* em_check_thread_;
     // ThreadPtr ctrl_thread_;
     // ThreadPtr pub_thread_;
     // ThreadPtr vel_ctrl_thread_;
+    //
+    /* Emergency check threads */
+    boost::thread* em_depth_check_thread_;
+    boost::thread* em_roll_check_thread_;
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
+    boost::condition_variable_any em_depth_check_cond_;
+    boost::condition_variable_any em_roll_check_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
+    boost::recursive_mutex em_depth_check_mutex_;
+    boost::recursive_mutex em_roll_check_mutex_;
 
     /* Source lock for emergency event states */
     boost::recursive_mutex em_event_mutex_;
