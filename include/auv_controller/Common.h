@@ -6,6 +6,30 @@
 #include <iostream>
 #include <exception>
 
+/**
+ * @brief Factor yield number from -1 to 1 in circular period 
+ */
+class FlucFactor
+{
+public:
+    FlucFactor();
+
+    /**
+     * @brief return fluctuate factor
+     */
+    double getFactor()
+    {
+        double f_copy = f;
+        f = -f;
+        return f_copy;
+    };
+
+private:
+    static double f;
+};
+
+static double f = 1.0;
+
 void rawPrint(const std::string& input);
 
 template<typename T>
