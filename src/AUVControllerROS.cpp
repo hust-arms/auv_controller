@@ -15,12 +15,16 @@
 #include <iomanip>
 #include "auv_controller/AUVControllerROS.h"
 
-/* Test macro */
+/* Common test macro */
 // #define SM_CTRL
 // #define THRUST_TEST
 // #define SPIRAL_TEST
 // #define XRUDDER_TEST
-# define EM_TEST
+
+/* Emergency test macro*/
+// # define DEPTH_EM_TEST
+// # define PITCH_EM_TEST
+# define YAW_EM_TEST
 
 namespace auv_controller{
 /////////////////////////////////////
@@ -437,10 +441,27 @@ void AUVControllerROS::wakeEMYawCheckThread(const ros::TimerEvent& event){
 void AUVControllerROS::publishThread(){
     ros::NodeHandle nh;
 
-    // wake control thread
-    boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+    // wake emergency check threads
+    boost::unique_lock<boost::recursive_mutex> em_depth_check_lock(em_depth_check_mutex_);
+    em_depth_check_cond_.notify_one();
+    em_depth_check_lock.unlock();
+
+    boost::unique_lock<boost::recursive_mutex> em_roll_check_lock(em_roll_check_mutex_);
+    em_roll_check_cond_.notify_one();
+    em_roll_check_lock.unlock();
+
+    boost::unique_lock<boost::recursive_mutex> em_pitch_check_lock(em_pitch_check_mutex_);
+    em_pitch_check_cond_.notify_one();
+    em_pitch_check_lock.unlock();
+
+    boost::unique_lock<boost::recursive_mutex> em_yaw_check_lock(em_yaw_check_mutex_);
+    em_yaw_check_cond_.notify_one();
+    em_yaw_check_lock.unlock();
+
+    //wake control thread
+    boost::unique_lock<boost::recursive_mutex> ctrl_lock(ctrl_mutex_);
     ctrl_cond_.notify_one();
-    lock.unlock();
+    ctrl_lock.unlock();
 
     while(nh.ok()){
         double vertfin, fwdfin, backfin, rpm;
@@ -467,12 +488,27 @@ void AUVControllerROS::publishThread(){
             rpm = 1900;
 #endif
 
-#ifdef EM_TEST
+#ifdef DEPTH_EM_TEST
             vertfin = 0.0 / 57.3;
-            fwdfin = 30.0 / 57.3; 
-            backfin = -30.0 / 57.3; 
+            fwdfin = 5.0 / 57.3; 
+            backfin = -5.0 / 57.3; 
             rpm = 1900; 
 #endif
+
+#ifdef PITCH_EM_TEST
+            vertfin = 0.0 / 57.3;
+            fwdfin = 40.0 / 57.3;
+            backfin = -40.0 / 57.3;
+            rpm = 1250;
+#endif
+
+#ifdef YAW_EM_TEST
+            vertfin = fluc_.getFactor() * 70.0/57.3;
+            fwdfin = 0.0;
+            backfin = 0.0;
+            rpm = 1250;
+#endif
+
             // If current state is in level1 emergency, stop action
             if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL1)
             {
@@ -481,27 +517,27 @@ void AUVControllerROS::publishThread(){
                 backfin = 0.0;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level1 emergency process!\n");
+                printf("Level1 emergency process! Em event: \n", em_event_);
             }
             // If current state is in level2 emergency, set max rudder and wait for AUV come-up
             if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL2)
             {
                 vertfin = 0.0 / 57.3;
-                fwdfin = 30 / 57.3;
-                backfin = -30 / 57.3;
+                fwdfin = -30 / 57.3;
+                backfin = 30 / 57.3;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level2 emergency process!\n");
+                printf("Level2 emergency process! Em event: \n", em_event_);
             }
             // If current state is in level3 emergency, set max rudder and reject load, then wait for AUV come-up
             if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL3)
             {
                 vertfin = 0.0 / 57.3;
-                fwdfin = 30 / 57.3;
-                backfin = -30 / 57.3;
+                fwdfin = -30 / 57.3;
+                backfin = 30 / 57.3;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level3 emergency process!\n");
+                printf("Level3 emergency process! Em event: \n", em_event_);
                 /* Reserved for load rejection action */
             }
         }
@@ -586,14 +622,17 @@ void AUVControllerROS::emDepthCheckThread()
             if(delta_depth < 4.0)
             {
                 // If current state level is lower than level1 emergency, update event and level
-                if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
-                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
-                   ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
-                {
-                    boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
-                    em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
-                    ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
-                }
+                // if(ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL1 &&
+                //    ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL2 &&
+                //    ctrl_state_ != AUVCtrlState::EMERGENCY_LEVEL3)
+                // {
+                //     boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                //     em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
+                //     ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
+                // }
+                boost::unique_lock<boost::recursive_mutex> guard(em_event_mutex_);
+                em_event_ = EmergencyEvent::ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD;
+                ctrl_state_ = AUVCtrlState::EMERGENCY_LEVEL1;
             }
             if(delta_depth >= 4.0 && delta_depth < 8.0)
             {

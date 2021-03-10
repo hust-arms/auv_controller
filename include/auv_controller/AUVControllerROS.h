@@ -41,7 +41,6 @@
 #include "file_writer.h"
 #include "PIDController.h"
 
-
 namespace auv_controller{
 
 // typedef boost::unique_ptr<boost::thread> ThreadPtr;
@@ -388,6 +387,23 @@ private:
         YAW_LEVEL3_SALTATION
     }; // EmergencyEvent
 
+    class FlucFactor
+    {
+    public:
+        /**
+         * @brief return fluctuate factor
+         */
+        double getFactor()
+        {
+            double f_copy = f_;
+            f_ = -f_;
+            return f_copy;
+        };
+    
+    private:
+        static double f_;
+    };
+
 private:
     /* Controller */
     AUVBaseController* controller_;
@@ -484,7 +500,13 @@ private:
     bool with_ff_, x_type_;
     // bool is_ctrl_run_, is_emerg_run_;
     bool debug_;
+
+    FlucFactor fluc_;
+
 }; // AUVControllerROS
+
+double AUVControllerROS::FlucFactor::f_ = 1.0;
+
 }; // ns
 
 #endif
