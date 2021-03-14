@@ -83,6 +83,46 @@ private:
     void wakeControlThread(const ros::TimerEvent& event);
 
     /**
+     * @brief Depth emergency check thread
+     */
+    void emDepthCheckThread();
+    
+    /**
+     * @brief Roll emergency check thread
+     */
+    void emRollCheckThread();
+    
+    /**
+     * @brief Pitch emergency check thread
+     */
+    void emPitchCheckThread();
+    
+    /**
+     * @brief Yaw emergency check thread
+     */
+    void emYawCheckThread();
+
+    /**
+     * @brief Wake depth emergency check thread
+     */
+    void wakeEMDepthCheckThread(const ros::TimerEvent& event);
+    
+    /**
+     * @brief Roll emergency check thread
+     */
+    void wakeEMRollCheckThread(const ros::TimerEvent& event);
+    
+    /**
+     * @brief Roll emergency check thread
+     */
+    void wakeEMPitchCheckThread(const ros::TimerEvent& event);
+    
+    /**
+     * @brief Yaw emergency check thread
+     */
+    void wakeEMYawCheckThread(const ros::TimerEvent& event);
+
+    /**
      * @brief Apply actuator input for model without front fins and model with front fins 
      */
     void applyActuatorInput(double rudder, double fwdfin, double backfin, double rpm);
@@ -280,8 +320,67 @@ private:
         STANDBY,
         OPENCTRL,
         CTRL,
-        EMERGENCY
+//      EMERGENCY
+        EMERGENCY_LEVEL1,
+        EMERGENCY_LEVEL2,
+        EMERGENCY_LEVEL3
     }; // AUVCtrlState
+
+    /**
+     * @brief AUV Emergency event
+     */
+    enum class EmergencyEvent
+    {
+        /* Common */
+        NO_EM_EVENT,
+    
+        /* Level 1 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL1_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL1_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL1_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL1_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL1_THRESHOLD,
+        YAW_LEVEL1_SALTATION,
+        ACCESS_TRAJECTORY_DEVIATION_LEVEL1_THRESHOLD,
+        VERTICAL_RUDDER_STUCK,
+        LATERAL_RUDDER_STUCK,
+    
+        /* Level 2 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL2_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL2_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL2_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL2_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL2_THRESHOLD,
+        YAW_LEVEL2_SALTATION,
+        ACCESS_TRAJECTORY_DEVIATION_LEVEL2_THRESHOLD,
+        ALTIMETER_SALTATION_OR_STUCK,
+    
+        /* Level 3 emergency states */
+        ACCESS_DESIRED_DEPTH_LEVEL3_THRESHOLD,
+        ACCESS_BOTTOM_HEIGHT_LEVEL3_THRESHOLD,
+        ACCESS_FORWARD_OBSTACLE_DISTANCE_LEVEL3_THRESHOLD,
+        ACCESS_ROLL_ANGLE_LEVEL3_THRESHOLD,
+        ACCESS_PITCH_ANGLE_LEVEL3_THRESHOLD,
+        YAW_LEVEL3_SALTATION
+    }; // EmergencyEvent
+
+    class FlucFactor
+    {
+    public:
+        /**
+         * @brief return fluctuate factor
+         */
+        double getFactor()
+        {
+            double f_copy = f_;
+            f_ = -f_;
+            return f_copy;
+        };
+    
+    private:
+        static double f_;
+    };
+
 
 private:
     /* Controller */
@@ -302,11 +401,14 @@ private:
     double ctrl_dt_; // control period
     double pub_dt_; // publish period
     double stable_wait_t_; // time to wait after vehicle is stable
+    double em_check_dt_;
 
     uint32_t seq_;
     std::string base_frame_; // base frame of vehicle
 
     AUVCtrlState ctrl_state_;
+    EmergencyEvent em_event_;
+
     bool is_ctrl_vel_, is_wait_stable_;
 
     /* Vehicle states */
@@ -325,16 +427,36 @@ private:
     double upper_p_, upper_s_, lower_p_, lower_s_; // for X type rudder
     double rpm_, ori_rpm_;
 
+    /* Var for emergency */
+    double prev_yaw_;
+
     /* Threads */
     boost::thread* ctrl_thread_; // thread for slide model control algorithm
     boost::thread* pub_thread_;  
     boost::thread* vel_ctrl_thread_;  
 
+    /* Emergency check threads */
+    boost::thread* em_depth_check_thread_;
+    boost::thread* em_roll_check_thread_;
+    boost::thread* em_pitch_check_thread_;
+    boost::thread* em_yaw_check_thread_;
+
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
+    boost::condition_variable_any em_depth_check_cond_;
+    boost::condition_variable_any em_roll_check_cond_;
+    boost::condition_variable_any em_pitch_check_cond_;
+    boost::condition_variable_any em_yaw_check_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
+
+    /* Source lock for emergency event states */
+    boost::recursive_mutex em_depth_check_mutex_;
+    boost::recursive_mutex em_roll_check_mutex_;
+    boost::recursive_mutex em_pitch_check_mutex_;
+    boost::recursive_mutex em_yaw_check_mutex_;
+    boost::recursive_mutex em_event_mutex_;
 
     /* Source lock of sensor */
     std::mutex imu_mutex_, pressure_mutex_, posegt_mutex_, dvl_mutex_;
@@ -350,9 +472,12 @@ private:
 
     /* flags */
     bool with_ff_, x_type_;
-    bool is_ctrl_run_, is_emerg_run_;
+    // bool is_ctrl_run_, is_emerg_run_;
     bool debug_;
 }; // AUVPIDControllerROS
+
+double AUVPIDControllerROS::FlucFactor::f_ = 1.0;
+
 }; // ns
 
 #endif
