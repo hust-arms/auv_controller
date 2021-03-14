@@ -204,10 +204,10 @@ void AUVPIDControllerROS::startControl(){
     ctrl_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::velControlThread, this));
 #endif
-    em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
-    em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
-    em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emPitchCheckThread, this));
-    em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emYawCheckThread, this));
+    em_depth_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emDepthCheckThread, this));
+    em_roll_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emRollCheckThread, this));
+    em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emPitchCheckThread, this));
+    em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emYawCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::publishThread, this));
 }
 
@@ -384,22 +384,22 @@ void AUVPIDControllerROS::wakeControlThread(const ros::TimerEvent& event){
 }
 
 /////////////////////////////////////
-void AUVControllerROS::wakeEMDepthCheckThread(const ros::TimerEvent& event){
+void AUVPIDControllerROS::wakeEMDepthCheckThread(const ros::TimerEvent& event){
     em_depth_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerROS::wakeEMRollCheckThread(const ros::TimerEvent& event){
+void AUVPIDControllerROS::wakeEMRollCheckThread(const ros::TimerEvent& event){
     em_roll_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerROS::wakeEMPitchCheckThread(const ros::TimerEvent& event){
+void AUVPIDControllerROS::wakeEMPitchCheckThread(const ros::TimerEvent& event){
     em_pitch_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerROS::wakeEMYawCheckThread(const ros::TimerEvent& event){
+void AUVPIDControllerROS::wakeEMYawCheckThread(const ros::TimerEvent& event){
     em_yaw_check_cond_.notify_one();
 }
 
@@ -553,7 +553,7 @@ void AUVPIDControllerROS::publishThread(){
 }
 
 /////////////////////////////////////
-void AUVControllerROS::emDepthCheckThread()
+void AUVPIDControllerROS::emDepthCheckThread()
 {
     ros::NodeHandle nh;
     ros::Timer em_depth_check_timer;
@@ -642,14 +642,14 @@ void AUVControllerROS::emDepthCheckThread()
                 //     printf("Control thread is waiting for wake\n");
                 // }
                 wait_for_wake = true;
-                em_depth_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMDepthCheckThread, this);
+                em_depth_check_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeEMDepthCheckThread, this);
             }
         }
     }
 }
 
 /////////////////////////////////////
-void AUVControllerROS::emRollCheckThread()
+void AUVPIDControllerROS::emRollCheckThread()
 {
     ros::NodeHandle nh;
     ros::Timer em_roll_check_timer;
@@ -733,14 +733,14 @@ void AUVControllerROS::emRollCheckThread()
                 //     printf("Control thread is waiting for wake\n");
                 // }
                 wait_for_wake = true;
-                em_roll_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMRollCheckThread, this);
+                em_roll_check_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeEMRollCheckThread, this);
             }
         }
     }
 }
 
 /////////////////////////////////////
-void AUVControllerROS::emPitchCheckThread()
+void AUVPIDControllerROS::emPitchCheckThread()
 {
     ros::NodeHandle nh;
     ros::Timer em_pitch_check_timer;
@@ -823,14 +823,14 @@ void AUVControllerROS::emPitchCheckThread()
                 //     printf("Control thread is waiting for wake\n");
                 // }
                 wait_for_wake = true;
-                em_pitch_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMPitchCheckThread, this);
+                em_pitch_check_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeEMPitchCheckThread, this);
             }
         }
     }
 }
 
 /////////////////////////////////////
-void AUVControllerROS::emYawCheckThread()
+void AUVPIDControllerROS::emYawCheckThread()
 {
     ros::NodeHandle nh;
     ros::Timer em_yaw_check_timer;
@@ -903,7 +903,7 @@ void AUVControllerROS::emYawCheckThread()
                 //     printf("Control thread is waiting for wake\n");
                 // }
                 wait_for_wake = true;
-                em_yaw_check_timer = nh.createTimer(sleep_time, &AUVControllerROS::wakeEMYawCheckThread, this);
+                em_yaw_check_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeEMYawCheckThread, this);
             }
         }
     }
