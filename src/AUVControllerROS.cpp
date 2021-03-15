@@ -102,7 +102,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/back_rudder_angle", 1);
    vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/vertical_rudder_angle", 1);
 
-   ctrl_state_reset_srv_ = nh.advertiseService("reset_ctrl_state", auv_controller::ResetCtrlState);
+   ctrl_state_reset_srv_ = nh.advertiseService("reset_ctrl_state", &AUVControllerROS::resetCtrlState, this);
 
    /* initialize controller */
    if (with_ff){
