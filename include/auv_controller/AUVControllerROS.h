@@ -427,6 +427,8 @@ private:
 
     ros::Time last_valid_ctrl_, ctrl_time_;
     ros::Time last_stable_;
+
+    ros::ServiceServer ctrl_state_reset_srv_;
     
     double ctrl_dt_; // control period
     double pub_dt_; // publish period
