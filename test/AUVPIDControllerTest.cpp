@@ -1,18 +1,18 @@
 /*
- * Filename: AUVControllerTest.cpp                                               
- * Path: armsauv_docking\src
- * Created Date: Sunday, Janurary 31th 2021, 14:05:02 pm
+ * Filename: AUVPIDControllerTest.cpp                                               
+ * Path: auv_controller
+ * Created Date: Saturday, Faburary 27th 2021, 14:05:02 pm
  * Author: zhao wang
  * 
  * Copyright (c) 2021 hust-arms
  */
 
 #include <stdio.h>
-#include "auv_controller/AUVControllerROS.h"
+#include "auv_controller/AUVPIDControllerROS.h"
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "auv_controller_test_node");
+    ros::init(argc, argv, "auv_pid_controller_test_node");
 
     bool with_ff, x_type = false, debug = false;
 
@@ -38,9 +38,8 @@ int main(int argc, char** argv)
         debug = true;
     }
 
-    std::string auv_ns = "armsauv";
-    // std::string auv_ns = "auv324";
-    auv_controller::AUVControllerROS auv_ctrl(auv_ns, with_ff, x_type, debug);
+    std::string auv_ns = "auv324";
+    auv_controller::AUVPIDControllerROS auv_ctrl(auv_ns, with_ff, x_type, debug);
 
     auv_ctrl.startControl();
 
