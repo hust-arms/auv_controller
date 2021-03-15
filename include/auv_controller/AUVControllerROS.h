@@ -41,6 +41,8 @@
 #include "file_writer.h"
 #include "PIDController.h"
 
+#include "auv_controller/ResetCtrlState.h"
+
 namespace auv_controller{
 
 // typedef boost::unique_ptr<boost::thread> ThreadPtr;
@@ -335,6 +337,12 @@ private:
      * @brief Print auv body parameters on the console
      */
     void printAUVBodyParams();
+
+    /**
+     * @brief ROS service: reset control state to standby
+     */ 
+    bool resetCtrlState(auv_controller::ResetCtrlState::Request& req, 
+                        auv_controller::ResetCtrlState::Response& res);
 
 private:
     /**

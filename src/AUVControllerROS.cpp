@@ -1154,4 +1154,41 @@ void AUVControllerROS::printAUVBodyParams(){
     ROS_INFO_STREAM(ss.str());
 }
 
+/////////////////////////////////////
+bool AUVControllerROS::resetCtrlState(auv_controller::ResetCtrlState::Request& req, 
+                                      auv_controller::ResetCtrlState::Response& res)
+{
+    if(req.IsReset == 0)
+    {
+        // Reset control state to standby
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::STANDBY;
+        }
+        res.FeedbackMsg = "Reset control state to standby!";
+        return true;
+    }
+
+    if(req.IsReset == 1)
+    {
+        // Reset control state to open control
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::OPENCTRL;
+        }
+        res.FeedbackMsg = "Reset control state to open loop control!";
+        return true;
+    }
+
+    if(req.IsReset == 2)
+    {
+        // Reset control state to open control
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::CTRL;
+        }
+        res.FeedbackMsg = "Reset control state to close loop control!";
+        return true;
+    }
+}
 }; // ns
