@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 
     if(ctrl_state_reset_cl.call(srv))
     {
-        ROS_INFO("Server feedback: %s", srv.response.FeedbackMsg);
+        ROS_INFO("Server feedback: %s", srv.response.FeedbackMsg.c_str());
     }
     else
     {
