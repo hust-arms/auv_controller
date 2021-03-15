@@ -30,11 +30,10 @@ find_package(Boost REQUIRED COMPONENTS system)
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  ResetCtrlState.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -109,6 +108,10 @@ add_library(pid_factory
   src/PIDController.cpp
 )
 
+add_executable(reset_control_state_node
+    node/ResetCtrlStateClient.cpp
+)
+
 add_executable(armsauv_controller_test_node
   test/ArmsAUVControllerTest.cpp
 )
@@ -121,11 +124,15 @@ add_executable(auv_pid_controller_test_node
   test/AUVPIDControllerTest.cpp
 )
 
+add_dependencies(reset_control_state_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(reset_control_state_node ${PROJECT_NAME} ${catkin_LIBRARIES})
 
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
 
