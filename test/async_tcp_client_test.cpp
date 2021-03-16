@@ -3,11 +3,14 @@
  * Author: zhao wang
  * Copyright (c) hust-arms
  */
- 
-#include "async_tcp_client.h"
+#include <ros/ros.h> 
+#include "auv_controller/async_tcp_client.h"
 
 int main(int argc, char* argv[])
 {
+  ros::init(argc, argv, "async_tcp_client_test");
+  ros::NodeHandle nh;
+
   try
   {
     if (argc != 3)
@@ -22,12 +25,16 @@ int main(int argc, char* argv[])
 
     c.start(r.resolve(tcp::resolver::query(argv[1], argv[2])));
 
+    std::cout << "TCP client has been created!" << std::endl;
+
     io_service.run();
   }
   catch (std::exception& e)
   {
     std::cerr << "Exception: " << e.what() << "\n";
   }
+
+  // ros::spin();
 
   return 0;
 }
