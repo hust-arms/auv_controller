@@ -165,6 +165,8 @@ namespace tcp_client{
     
       if (!ec)
       {
+        std::cout << "In write handle" << std::endl;
+
         // Wait 10 seconds before sending the next heartbeat.
         heartbeat_timer_.expires_from_now(boost::posix_time::seconds(10));
         heartbeat_timer_.async_wait(boost::bind(&AsyncTCPClient::start_write, this));
