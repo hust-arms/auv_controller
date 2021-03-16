@@ -108,6 +108,22 @@ add_library(pid_factory
   src/PIDController.cpp
 )
 
+add_library(async_tcp_server
+  src/async_tcp_server.cpp
+)
+
+add_library(async_tcp_client
+  src/async_tcp_client.cpp
+)
+
+add_library(tcp_server
+  src/tcp_server.cpp
+)
+
+add_library(tcp_client
+  src/tcp_client.cpp  
+)
+
 add_executable(reset_control_state_node
     node/ResetCtrlStateClient.cpp
 )
@@ -124,6 +140,22 @@ add_executable(auv_pid_controller_test_node
   test/AUVPIDControllerTest.cpp
 )
 
+add_executable(async_tcp_client_test_node
+  test/async_tcp_client_test.cpp
+)
+
+add_executable(async_tcp_server_test_node
+  test/async_tcp_server_test.cpp
+)
+
+add_executable(tcp_server_test_node
+  test/tcp_server_test.cpp
+)
+
+add_executable(tcp_client_test_node
+  test/tcp_client_test.cpp
+)
+
 add_dependencies(reset_control_state_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -132,6 +164,14 @@ add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${
 
 add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(async_tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(async_tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(reset_control_state_node ${PROJECT_NAME} ${catkin_LIBRARIES})
 
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
@@ -139,3 +179,11 @@ target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer $
 target_link_libraries(auv_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(async_tcp_client_test_node async_tcp_client ${catkin_LIBRARIES})
+
+target_link_libraries(async_tcp_server_test_node async_tcp_server ${catkin_LIBRARIES})
+
+target_link_libraries(tcp_server_test_node tcp_server ${catkin_LIBRARIES})
+
+target_link_libraries(tcp_client_test_node tcp_client ${catkin_LIBRARIES})
