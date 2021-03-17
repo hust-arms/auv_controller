@@ -23,8 +23,8 @@
 
 /* Emergency test macro*/
 // # define DEPTH_EM_TEST
-// # define PITCH_EM_TEST
-# define YAW_EM_TEST
+# define PITCH_EM_TEST
+// # define YAW_EM_TEST
 
 namespace auv_controller{
 /////////////////////////////////////
@@ -1109,6 +1109,32 @@ void AUVControllerROS::desiredParamshCb(const armsauv_msgs::DesiredParams::Const
     pitch_d_ = msg->dpitch;
     yaw_d_ = msg->dyaw;
     u_d_ = msg->dlinvelx;
+}
+
+/////////////////////////////////////
+void AUVControllerROS::statusCb(const std_msgs::Int64::ConstPtr& msg)
+{
+    switch(msg->data)
+    {
+    case 0:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::STANDBY;
+        }
+        break;
+    case 1:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::OPENCTRL;
+        }
+        break;
+    case 2:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::CTRL;
+        }
+        break;
+    }
 }
 
 /////////////////////////////////////
