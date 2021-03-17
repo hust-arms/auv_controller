@@ -24,6 +24,7 @@
 /* ros dependencies */
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Int64.h>
 #include <std_msgs/Header.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/FluidPressure.h>
@@ -300,6 +301,11 @@ private:
      * @brief Desired input 
      */
     void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
+
+    /**
+     * @brief Ctrl status callback
+     */
+    void statusCb(const std_msgs::Int64::ConstPtr& msg);
 
     /* Debug interface */
     /**

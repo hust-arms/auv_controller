@@ -1062,6 +1062,31 @@ void AUVPIDControllerROS::desiredParamshCb(const armsauv_msgs::DesiredParams::Co
     u_d_ = msg->dlinvelx;
 }
 
+void AUVPIDControllerROS::statusCb(const std_msgs::Int64::ConstPtr& msg)
+{
+    switch(msg->data)
+    {
+    case 0:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::STANDBY;
+        }
+        break;
+    case 1:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::OPENCTRL;
+        }
+        break;
+    case 2:
+        {
+            boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
+            ctrl_state_ = AUVCtrlState::CTRL;
+        }
+        break;
+    }
+}
+
 void AUVPIDControllerROS::printAUVCtrlParams(){
     std::stringstream ss;
     ss << "AUV control parameters: {";
