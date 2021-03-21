@@ -33,6 +33,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 add_service_files(
   FILES
   ResetCtrlState.srv
+  SetMissionStatus.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -100,6 +101,20 @@ add_library(auv_pid_controller
   src/AUVPIDControllerROS.cpp
 )
 
+add_library(auv_controller_exp
+  src/Common.cpp
+  src/AUVBaseController.cpp
+  src/AUVControllerWithFF.cpp
+  src/AUVControllerNoFF.cpp
+  src/PIDController.cpp
+  src/AUVControllerXF.cpp
+  src/AUVControllerExp.cpp
+)
+
+add_library(auv_traj_follow_manager_ros
+  src/AUVTrajFollowManagerROS.cpp
+)
+
 add_library(file_writer
   src/file_writer.cpp
 ) 
@@ -140,6 +155,10 @@ add_executable(auv_pid_controller_test_node
   test/AUVPIDControllerTest.cpp
 )
 
+add_executable(auv_controller_exp_test_node
+  test/AUVControllerExpTest.cpp
+)
+
 add_executable(async_tcp_client_test_node
   test/async_tcp_client_test.cpp
 )
@@ -164,6 +183,8 @@ add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${
 
 add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_controller_exp_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(async_tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(async_tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -179,6 +200,8 @@ target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer $
 target_link_libraries(auv_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv_controller_exp_test_node auv_controller_exp file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(async_tcp_client_test_node async_tcp_client ${catkin_LIBRARIES})
 
