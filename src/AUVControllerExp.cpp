@@ -16,14 +16,14 @@
 #include "auv_controller/AUVControllerExp.h"
 
 /* Common test macro */
-// #define SM_CTRL
+#define SM_CTRL
 // #define THRUST_TEST
 // #define SPIRAL_TEST
 // #define XRUDDER_TEST
 
 /* Emergency test macro*/
 // # define DEPTH_EM_TEST
-# define PITCH_EM_TEST
+// # define PITCH_EM_TEST
 // # define YAW_EM_TEST
 
 namespace auv_controller{
@@ -31,12 +31,13 @@ namespace auv_controller{
 AUVControllerExp::AUVControllerExp(std::string auv_name, bool with_ff, bool x_type, bool debug) : 
     with_ff_(with_ff), x_type_(x_type), debug_(debug)
 {
-   
+    debug_ = !debug_;
+
    // Default parameters
    base_frame_ = auv_name + "/base_link";
    rpm_ = 1400.0;
    ori_rpm_ = rpm_;
-   ctrl_dt_ = 0.1;
+   ctrl_dt_ = 0.2;
    pub_dt_ = 0.2;
    em_check_dt_ = 0.5;
    stable_wait_t_ = 90.0;
@@ -61,26 +62,29 @@ AUVControllerExp::AUVControllerExp(std::string auv_name, bool with_ff, bool x_ty
 
    /* initialize controller */
    if (with_ff){
+       if(debug_)
        {
            std::lock_guard<std::mutex> guard(print_mutex_);
-           printf("Model with front fins\n");
+           printf("[AUVControllerExp]: Model with front fins\n");
        }
        controller_ = new AUVControllerWithFF();
    }
    else{
        if(x_type)
        {
+           if(debug_)
            {
                std::lock_guard<std::mutex> guard(print_mutex_);
-               printf("Model with X type rudder\n");
+               printf("[AUVControllerExp]: Model with X type rudder\n");
            }
            controller_ = new AUVControllerXF();
        }
        else
        {
+           if(debug_)
            {
                std::lock_guard<std::mutex> guard(print_mutex_);
-               printf("Model without front fins\n");
+               printf("[AUVControllerExp]: Model without front fins\n");
            }
            controller_ = new AUVControllerNoFF();
        }
@@ -91,6 +95,7 @@ AUVControllerExp::AUVControllerExp(std::string auv_name, bool with_ff, bool x_ty
    is_ctrl_vel_ = false; is_wait_stable_ = false;
 
    fwdfin_ = 0.0; backfin_ = 0.0; vertfin_ = 0.0; 
+   upper_p_ = 0.0; upper_s_ = 0.0; lower_p_ = 0.0; lower_s_ = 0.0;
 
    // is_ctrl_run_ = false; is_emerg_run_ = false;
 
@@ -101,9 +106,10 @@ AUVControllerExp::AUVControllerExp(std::string auv_name, bool with_ff, bool x_ty
 
    stop_ = false; // loop flag
 
+   if(debug_)
    {
        std::lock_guard<std::mutex> guard(print_mutex_);
-       printf("Finish controller initialization\n");
+       printf("[AUVControllerExp]: Finish controller initialization\n");
    }
 }
 
@@ -170,19 +176,20 @@ AUVControllerExp::~AUVControllerExp(){
 
 /////////////////////////////////////
 void AUVControllerExp::startControl(){
-    printf("Start control thread & publish thread\n");
-    ctrl_state_ = AUVCtrlState::CTRL;
+    if(debug_)
+    {
+        printf("[AUVControllerExp]: Start control thread & publish thread\n");
+    }
+    // ctrl_state_ = AUVCtrlState::CTRL;
     // is_ctrl_run_ = true; is_emerg_run_ = false;
-#ifdef SM_CTRL
-    ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerExp::controlThread, this));
-    vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerExp::velControlThread, this));
-    // ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerExp::controlThread, this));
-    // vel_ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerExp::velControlThread, this));
-#endif
     em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerExp::emDepthCheckThread, this));
     em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerExp::emRollCheckThread, this));
     em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerExp::emPitchCheckThread, this));
     em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVControllerExp::emYawCheckThread, this));
+#ifdef SM_CTRL
+    ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerExp::controlThread, this));
+    vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerExp::velControlThread, this));
+#endif
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerExp::publishThread, this));
 }
 
@@ -205,6 +212,7 @@ void AUVControllerExp::getCtrlVar(double& upper_p, double& upper_s, double& lowe
     upper_s = upper_s_;
     lower_p = lower_p_;
     lower_s = lower_s_;
+    thruster = rpm_;
 }
 
 /////////////////////////////////////
@@ -228,25 +236,23 @@ void AUVControllerExp::updateCtrlInfo(double x_d, double y_d, double depth_d, do
 
 /////////////////////////////////////
 void AUVControllerExp::controlThread(){
-    boost::asio::io_service io;
-    boost::asio::deadline_timer ctrl_timer(io);
     bool wait_for_wake = false;
 
     boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
     while(!stop_){
-        // while(wait_for_wake || !is_ctrl_run_){
-        while(wait_for_wake || !(ctrl_state_ == AUVCtrlState::CTRL)){
+        // while(wait_for_wake || ctrl_state_ != AUVCtrlState::CTRL){
+        while(ctrl_state_ != AUVCtrlState::CTRL){
             if(debug_){
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Control thread is suspending\n");
+                printf("[AUVControllerExp]: Control thread is suspending\n");
             }
             ctrl_cond_.wait(lock);
-            wait_for_wake = false;
+            // wait_for_wake = false;
         }
         // control thread wake
         if(debug_){
             std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control thread is waked\n");
+            printf("[AUVControllerExp]: Control thread is waked\n");
         }
         lock.unlock();
 
@@ -273,7 +279,7 @@ void AUVControllerExp::controlThread(){
 
         if(debug_){ 
             std::lock_guard<std::mutex> guard(print_mutex_);
-            std::cout << "Vehicle status:{" << "x:" << sensor_msg.x_ << " y:" << sensor_msg.y_ << " z:" << sensor_msg.z_
+            std::cout << "[AUVControllerExp]: Vehicle status:{" << "x:" << sensor_msg.x_ << " y:" << sensor_msg.y_ << " z:" << sensor_msg.z_
             << " roll:" << sensor_msg.roll_ << " pitch:" << sensor_msg.pitch_ << " yaw:" << sensor_msg.yaw_
             << " u:" << sensor_msg.x_dot_ << " v:" << sensor_msg.y_dot_ << " w:" << sensor_msg.z_dot_
             << " roll vel:" << sensor_msg.roll_dot_ << " pitch vel:" << sensor_msg.pitch_dot_ << " yaw vel" << sensor_msg.yaw_dot_
@@ -286,7 +292,7 @@ void AUVControllerExp::controlThread(){
         // Print control input
         if(debug_){
             std::lock_guard<std::mutex> guard(print_mutex_);
-            std::cout << "Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
+            std::cout << "[AUVControllerExp]: Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
                 " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "desired u:" << u_d_ << "}" << std::endl; 
         }
 
@@ -309,7 +315,7 @@ void AUVControllerExp::controlThread(){
                 vertfin_ = output.rudder_;
                 fwdfin_ = output.fwd_fin_;
                 backfin_ = output.aft_fin_;
-            
+                printf("[AUVControllerExp]: vertfin: %f fwdfin: %f backfin: %f\n", vertfin_, fwdfin_, backfin_);
             }
             else
             {
@@ -317,6 +323,7 @@ void AUVControllerExp::controlThread(){
                 upper_s_ = output.upper_s_;
                 lower_p_ = output.lower_p_;
                 lower_s_ = output.lower_s_;
+                printf("[AUVControllerExp]: upper_p: %f upper_s: %f lower_p: %f lower_f: %f\n", upper_p_, upper_s_, lower_p_, lower_s_);
             }
             
             // update rotor speed 
@@ -324,7 +331,7 @@ void AUVControllerExp::controlThread(){
                 rpm_ += output.rpm_;
                 if(debug_){
                     std::lock_guard<std::mutex> guard(print_mutex_);
-                    printf("RPM: %f\n", rpm_);
+                    printf("[AUVControllerExp]: RPM: %f\n", rpm_);
                 }
             }
             else
@@ -332,25 +339,15 @@ void AUVControllerExp::controlThread(){
                 rpm_ = ori_rpm_;
                 if(debug_){
                     std::lock_guard<std::mutex> guard(print_mutex_);
-                    printf("RPM: %f\n", rpm_);
+                    printf("[AUVControllerExp]: RPM: %f\n", rpm_);
                 }
             }
         }
 
         lock.lock();
 
-        if(ctrl_dt_ > 0.0){
-            double sleep_time = ctrl_dt_ - count_t.elapsed();
-            if(sleep_time > 0.0){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
-                ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeControlThread, this, _1));
-            }
-        }
+        double sleep_time = ctrl_dt_ - count_t.elapsed();
+        boost::this_thread::sleep(boost::posix_time::milliseconds(sleep_time * 1000));
     }
 }
 
@@ -365,7 +362,7 @@ void AUVControllerExp::velControlThread(){
                 is_wait_stable_ = true;
                 if(debug_){
                     std::lock_guard<std::mutex> guard(print_mutex_);
-                    printf("Wait to control velocity\n");
+                    printf("[AUVControllerExp]: Wait to control velocity\n");
                 }
             }
             else{
@@ -380,7 +377,7 @@ void AUVControllerExp::velControlThread(){
                         is_wait_stable_ = false;
                         if(debug_){
                             std::lock_guard<std::mutex> guard(print_mutex_);
-                            printf("End velocity control waiting\n");
+                            printf("[AUVControllerExp]: End velocity control waiting\n");
                         }
                     }
                 }
@@ -399,48 +396,49 @@ void AUVControllerExp::velControlThread(){
 }
 
 /////////////////////////////////////
-void AUVControllerExp::wakeControlThread(const boost::system::error_code& ec){
+void AUVControllerExp::wakeControl(const boost::system::error_code& ec){
+    printf("wake\n");
     ctrl_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerExp::wakeEMDepthCheckThread(const boost::system::error_code& ec){
-    em_depth_check_cond_.notify_one();
+void AUVControllerExp::wakeEMDepthCheck(const boost::system::error_code& ec){
+    // em_depth_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerExp::wakeEMRollCheckThread(const boost::system::error_code& ec){
-    em_roll_check_cond_.notify_one();
+void AUVControllerExp::wakeEMRollCheck(const boost::system::error_code& ec){
+    // em_roll_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerExp::wakeEMPitchCheckThread(const boost::system::error_code& ec){
-    em_pitch_check_cond_.notify_one();
+void AUVControllerExp::wakeEMPitchCheck(const boost::system::error_code& ec){
+    // em_pitch_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
-void AUVControllerExp::wakeEMYawCheckThread(const boost::system::error_code& ec){
-    em_yaw_check_cond_.notify_one();
+void AUVControllerExp::wakeEMYawCheck(const boost::system::error_code& ec){
+    // em_yaw_check_cond_.notify_one();
 }
 
 /////////////////////////////////////
 void AUVControllerExp::publishThread(){
     // wake emergency check threads
-    boost::unique_lock<boost::recursive_mutex> em_depth_check_lock(em_depth_check_mutex_);
-    em_depth_check_cond_.notify_one();
-    em_depth_check_lock.unlock();
-
-    boost::unique_lock<boost::recursive_mutex> em_roll_check_lock(em_roll_check_mutex_);
-    em_roll_check_cond_.notify_one();
-    em_roll_check_lock.unlock();
-
-    boost::unique_lock<boost::recursive_mutex> em_pitch_check_lock(em_pitch_check_mutex_);
-    em_pitch_check_cond_.notify_one();
-    em_pitch_check_lock.unlock();
-
-    boost::unique_lock<boost::recursive_mutex> em_yaw_check_lock(em_yaw_check_mutex_);
-    em_yaw_check_cond_.notify_one();
-    em_yaw_check_lock.unlock();
+    // boost::unique_lock<boost::recursive_mutex> em_depth_check_lock(em_depth_check_mutex_);
+    // em_depth_check_cond_.notify_one();
+    // em_depth_check_lock.unlock();
+    // 
+    // boost::unique_lock<boost::recursive_mutex> em_roll_check_lock(em_roll_check_mutex_);
+    // em_roll_check_cond_.notify_one();
+    // em_roll_check_lock.unlock();
+    // 
+    // boost::unique_lock<boost::recursive_mutex> em_pitch_check_lock(em_pitch_check_mutex_);
+    // em_pitch_check_cond_.notify_one();
+    // em_pitch_check_lock.unlock();
+    // 
+    // boost::unique_lock<boost::recursive_mutex> em_yaw_check_lock(em_yaw_check_mutex_);
+    // em_yaw_check_cond_.notify_one();
+    // em_yaw_check_lock.unlock();
 
     //wake control thread
     boost::unique_lock<boost::recursive_mutex> ctrl_lock(ctrl_mutex_);
@@ -451,6 +449,8 @@ void AUVControllerExp::publishThread(){
     {
         double vertfin, fwdfin, backfin, rpm;
         double upper_p, upper_s, lower_p, lower_s;
+        vertfin = 0.0; fwdfin = 0.0; backfin = 0.0; rpm = 0.0;
+        upper_p = 0.0; upper_s = 0.0; lower_p = 0.0; lower_s = 0.0;
         if(!x_type_)
         {
             std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
@@ -502,7 +502,7 @@ void AUVControllerExp::publishThread(){
                 backfin = 0.0;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level1 emergency process!\n");
+                printf("[AUVControllerExp]: Level1 emergency process!\n");
             }
             // If current state is in level2 emergency, set max rudder and wait for AUV come-up
             if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL2)
@@ -512,7 +512,7 @@ void AUVControllerExp::publishThread(){
                 backfin = 30 / 57.3;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level2 emergency process!\n");
+                printf("[AUVControllerExp]: Level2 emergency process!\n");
             }
             // If current state is in level3 emergency, set max rudder and reject load, then wait for AUV come-up
             if(ctrl_state_ == AUVCtrlState::EMERGENCY_LEVEL3)
@@ -522,7 +522,7 @@ void AUVControllerExp::publishThread(){
                 backfin = 30 / 57.3;
                 rpm = 0.0;
                 std::lock_guard<std::mutex> guard(print_mutex_);
-                printf("Level3 emergency process!\n");
+                printf("[AUVControllerExp]: Level3 emergency process!\n");
                 /* Reserved for load rejection action */
             }
         }
@@ -544,18 +544,21 @@ void AUVControllerExp::publishThread(){
 #endif
         }
 
-        // print statues info
-        if(!x_type_)
+        if(debug_)
         {
-            std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f}\n", 
-                   vertfin, fwdfin, backfin, rpm);
-        }
-        else
-        {
-            std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{upper port fin:%8f upper starboard fin:%8f lower port fin:%8f lower starboard fin:%8f rpm:%8f}\n", 
-                   upper_p, upper_s, lower_p, lower_s, rpm);
+            // print statues info
+            if(!x_type_)
+            {
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("[AUVControllerExp]: Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f}\n", 
+                       vertfin, fwdfin, backfin, rpm);
+            }
+            else
+            {
+                std::lock_guard<std::mutex> guard(print_mutex_);
+                printf("[AUVControllerExp]: Control output:{upper port fin:%8f upper starboard fin:%8f lower port fin:%8f lower starboard fin:%8f rpm:%8f}\n", 
+                       upper_p, upper_s, lower_p, lower_s, rpm);
+            }
         }
 
         boost::this_thread::sleep(boost::posix_time::milliseconds(pub_dt_ * 1000));
@@ -565,21 +568,18 @@ void AUVControllerExp::publishThread(){
 /////////////////////////////////////
 void AUVControllerExp::emDepthCheckThread()
 {
-    boost::asio::io_service io;
-    boost::asio::deadline_timer em_depth_check_timer(io);
-    bool wait_for_wake = true;
-
+    // bool wait_for_wake = true;
     int check_cnt = 0;
 
     while(!stop_)
     {
-        boost::unique_lock<boost::recursive_mutex> lock(em_depth_check_mutex_);
+        // boost::unique_lock<boost::recursive_mutex> lock(em_depth_check_mutex_);
         // Wait for wake
-        while(wait_for_wake){
-            em_depth_check_cond_.wait(lock);
-            wait_for_wake = false;                                                       
-        }
-        lock.unlock();
+        // while(wait_for_wake){
+        //     em_depth_check_cond_.wait(lock);
+        //     wait_for_wake = false;                                                       
+        // }
+        // lock.unlock();
 
         boost::timer count_t;
 
@@ -642,42 +642,40 @@ void AUVControllerExp::emDepthCheckThread()
             check_cnt = 0;
         }
 
-        lock.lock();
+        // lock.lock();
 
+        double sleep_time = em_check_dt_ - count_t.elapsed();
+        boost::this_thread::sleep(boost::posix_time::milliseconds(sleep_time * 1000));
 
-        if(em_check_dt_ > 0.0){
-            double sleep_time = em_check_dt_ - count_t.elapsed();
-            if(sleep_time > 0.0){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                em_depth_check_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
-                em_depth_check_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMDepthCheckThread, this, _1));
-            }
-        }
+        // if(em_check_dt_ > 0.0){
+        //     double sleep_time = em_check_dt_ - count_t.elapsed();
+        //     if(sleep_time > 0.0){
+        //         // if(debug_){
+        //         //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //         //     printf("Control thread is waiting for wake\n");
+        //         // }
+        //         wait_for_wake = true;
+        //         boost::thread wake_em_depth_check_th(boost::bind(&AUVControllerExp::wakeEMDepthCheckThread, this, sleep_time));
+        //     }
+        // }
     }
 }
 
 /////////////////////////////////////
 void AUVControllerExp::emRollCheckThread()
 {
-    boost::asio::io_service io;
-    boost::asio::deadline_timer em_roll_check_timer(io);
-    bool wait_for_wake = true;
-
+    // bool wait_for_wake = true;
     int check_cnt = 0;
 
     while(!stop_)
     {
-        boost::unique_lock<boost::recursive_mutex> lock(em_roll_check_mutex_);
-        // Wait for wake
-        while(wait_for_wake){
-            em_roll_check_cond_.wait(lock);
-            wait_for_wake = false;                                                       
-        }
-        lock.unlock();
+        // boost::unique_lock<boost::recursive_mutex> lock(em_roll_check_mutex_);
+        // // Wait for wake
+        // while(wait_for_wake){
+        //     em_roll_check_cond_.wait(lock);
+        //     wait_for_wake = false;                                                       
+        // }
+        // lock.unlock();
 
         boost::timer count_t;
         double cur_roll = abs(getRoll()) * rad2degree;
@@ -734,42 +732,41 @@ void AUVControllerExp::emRollCheckThread()
             check_cnt = 0;
         }
 
-        lock.lock();
+        // lock.lock();
 
+        double sleep_time  = em_check_dt_ - count_t.elapsed();
 
-        if(em_check_dt_ > 0.0){
-            double sleep_time  = em_check_dt_ - count_t.elapsed();
-            if(sleep_time > 0.0){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                em_roll_check_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
-                em_roll_check_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMRollCheckThread, this, _1));
-            }
-        }
+        boost::this_thread::sleep(boost::posix_time::milliseconds(sleep_time * 1000));
+
+        // if(em_check_dt_ > 0.0){
+        //     double sleep_time  = em_check_dt_ - count_t.elapsed();
+        //     if(sleep_time > 0.0){
+        //         // if(debug_){
+        //         //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //         //     printf("Control thread is waiting for wake\n");
+        //         // }
+        //         wait_for_wake = true;
+        //         boost::thread wake_em_roll_check_th(boost::bind(&AUVControllerExp::wakeEMRollCheckThread, this, sleep_time));
+        //     }
+        // }
     }
 }
 
 /////////////////////////////////////
 void AUVControllerExp::emPitchCheckThread()
 {
-    boost::asio::io_service io;
-    boost::asio::deadline_timer em_pitch_check_timer(io);
-    bool wait_for_wake = true;
-
+    // bool wait_for_wake = true;
     int check_cnt = 0;
 
     while(!stop_)
     {
-        boost::unique_lock<boost::recursive_mutex> lock(em_pitch_check_mutex_);
+        // boost::unique_lock<boost::recursive_mutex> lock(em_pitch_check_mutex_);
         // Wait for wake
-        while(wait_for_wake){
-            em_pitch_check_cond_.wait(lock);
-            wait_for_wake = false;                                                       
-        }
-        lock.unlock();
+        // while(wait_for_wake){
+        //     em_pitch_check_cond_.wait(lock);
+        //     wait_for_wake = false;                                                       
+        // }
+        // lock.unlock();
 
         boost::timer count_t;
         double cur_pitch = abs(getPitch()) * rad2degree;
@@ -826,44 +823,41 @@ void AUVControllerExp::emPitchCheckThread()
             check_cnt = 0;
         }
 
-        lock.lock();
+        // lock.lock();
 
+        double sleep_time = em_check_dt_ - count_t.elapsed();
+        boost::this_thread::sleep(boost::posix_time::milliseconds(sleep_time * 1000));
 
-        if(em_check_dt_ > 0.0){
-            double sleep_time = em_check_dt_ - count_t.elapsed();
-            if(sleep_time > 0.0){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                em_pitch_check_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
-                em_pitch_check_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMPitchCheckThread, this, _1));
-            }
-        }
+        // if(em_check_dt_ > 0.0){
+        //     double sleep_time = em_check_dt_ - count_t.elapsed();
+        //     if(sleep_time > 0.0){
+        //         // if(debug_){
+        //         //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //         //     printf("Control thread is waiting for wake\n");
+        //         // }
+        //         wait_for_wake = true;
+        //         boost::thread wake_em_pitch_check_th(boost::bind(&AUVControllerExp::wakeEMPitchCheckThread, this, sleep_time));
+        //     }
+        // }
     }
 }
 
 /////////////////////////////////////
 void AUVControllerExp::emYawCheckThread()
 {
-    boost::asio::io_service io;
-    boost::asio::deadline_timer em_yaw_check_timer(io);
-
-    bool wait_for_wake = true;
-
+    // bool wait_for_wake = true;
     double prev_yaw = getYaw();
     double cur_yaw = prev_yaw;
 
     while(!stop_)
     {
-        boost::unique_lock<boost::recursive_mutex> lock(em_yaw_check_mutex_);
-        // Wait for wake
-        while(wait_for_wake){
-            em_yaw_check_cond_.wait(lock);
-            wait_for_wake = false;                                                       
-        }
-        lock.unlock();
+        // boost::unique_lock<boost::recursive_mutex> lock(em_yaw_check_mutex_);
+        // // Wait for wake
+        // while(wait_for_wake){
+        //     em_yaw_check_cond_.wait(lock);
+        //     wait_for_wake = false;                                                       
+        // }
+        // lock.unlock();
 
         boost::timer count_t;
         double cur_yaw = getYaw();
@@ -909,21 +903,22 @@ void AUVControllerExp::emYawCheckThread()
         }
         prev_yaw = cur_yaw;
 
-        lock.lock();
+        // lock.lock();
 
+        double sleep_time = em_check_dt_ - count_t.elapsed(); 
+        boost::this_thread::sleep(boost::posix_time::milliseconds(sleep_time * 1000));
 
-        if(em_check_dt_ > 0.0){
-            double sleep_time = em_check_dt_ - count_t.elapsed(); 
-            if(sleep_time > 0.0){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                em_yaw_check_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
-                em_yaw_check_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMYawCheckThread, this, _1));
-            }
-        }
+        // if(em_check_dt_ > 0.0){
+        //     double sleep_time = em_check_dt_ - count_t.elapsed(); 
+        //     if(sleep_time > 0.0){
+        //         // if(debug_){
+        //         //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //         //     printf("Control thread is waiting for wake\n");
+        //         // }
+        //         wait_for_wake = true;
+        //         boost::thread wake_em_yaw_check_th(boost::bind(&AUVControllerExp::wakeEMYawCheckThread, this, sleep_time));
+        //     }
+        // }
     }
 }
 

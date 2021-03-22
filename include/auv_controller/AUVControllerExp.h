@@ -19,6 +19,7 @@
 #include <boost/timer.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/make_unique.hpp>
 
@@ -36,6 +37,8 @@
 namespace auv_controller{
 
 // typedef boost::unique_ptr<boost::thread> ThreadPtr;
+//
+typedef boost::shared_ptr<boost::asio::deadline_timer> DeadlineTimerPtr;
 
 /**
  * @brief AUV controller ROS wrapper class
@@ -140,10 +143,25 @@ private:
     // void emEventCheckThread(const boost::system::error_code& ec);
 
     /**
+     * @brief Thread to wake control
+     */
+    void wakeControlThread(double sleep_time)
+    {
+        boost::asio::io_service io;
+        boost::asio::deadline_timer ctrl_timer(io, boost::posix_time::seconds(sleep_time));
+        ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
+        ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeControl, this, _1));
+        // ctrl_timer.wait();
+        // ctrl_cond_.notify_one();
+        // printf("sync wait\n");
+        io.run();
+    }
+
+    /**
      * @brief Wake control thread
      */
-    void wakeControlThread(const boost::system::error_code& ec);
-
+    void wakeControl(const boost::system::error_code& ec);
+    
     /**
      * @brief Depth emergency check thread
      */ 
@@ -165,24 +183,72 @@ private:
     void emYawCheckThread();
 
     /**
+     * @brief Thread to wake depth emergency checking thread 
+     */
+    void wakeEMDepthCheckThread(double sleep_time)
+    {
+        boost::asio::io_service io;
+        boost::asio::deadline_timer ctrl_timer(io, boost::posix_time::seconds(sleep_time));
+        ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
+        ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMDepthCheck, this, _1));
+        io.run();
+    }
+
+    /**
      * @brief Wake depth emergency check thread
      */ 
-    void wakeEMDepthCheckThread(const boost::system::error_code& ec);
+    void wakeEMDepthCheck(const boost::system::error_code& ec);
+
+    /**
+     * @brief Thread to wake roll emergency checking thread 
+     */
+    void wakeEMRollCheckThread(double sleep_time)
+    {
+        boost::asio::io_service io;
+        boost::asio::deadline_timer ctrl_timer(io, boost::posix_time::seconds(sleep_time));
+        ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
+        ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMRollCheck, this, _1));
+        io.run();
+    }
 
     /**
      * @brief Roll emergency check thread
      */
-    void wakeEMRollCheckThread(const boost::system::error_code& ec);
+    void wakeEMRollCheck(const boost::system::error_code& ec);
+
+    /**
+     * @brief Thread to wake Pitch emergency checking thread 
+     */
+    void wakeEMPitchCheckThread(double sleep_time)
+    {
+        boost::asio::io_service io;
+        boost::asio::deadline_timer ctrl_timer(io, boost::posix_time::seconds(sleep_time));
+        ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
+        ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMPitchCheck, this, _1));
+        io.run();
+    }
 
     /**
      * @brief Roll emergency check thread
      */
-    void wakeEMPitchCheckThread(const boost::system::error_code& ec);
+    void wakeEMPitchCheck(const boost::system::error_code& ec);
     
+    /**
+     * @brief Thread to wake Yaw emergency checking thread 
+     */
+    void wakeEMYawCheckThread(double sleep_time)
+    {
+        boost::asio::io_service io;
+        boost::asio::deadline_timer ctrl_timer(io, boost::posix_time::seconds(sleep_time));
+        ctrl_timer.expires_from_now(boost::posix_time::seconds(sleep_time));
+        ctrl_timer.async_wait(boost::bind(&AUVControllerExp::wakeEMYawCheck, this, _1));
+        io.run();
+    }
+
     /**
      * @brief Yaw emergency check thread
      */
-    void wakeEMYawCheckThread(const boost::system::error_code& ec);
+    void wakeEMYawCheck(const boost::system::error_code& ec);
 
     /**
      * @brief Return true if status of AUV is stable
@@ -423,7 +489,7 @@ private:
     AUVBaseController* controller_;
     PIDControllerPtr u_controller_;
 
-    /* ROS components */
+    /* Boost components */
     boost::posix_time::ptime last_valid_ctrl_, ctrl_time_;
     boost::posix_time::ptime last_stable_;
 
@@ -476,20 +542,19 @@ private:
 
     /* condition var */
     boost::condition_variable_any ctrl_cond_;
-    boost::condition_variable_any em_depth_check_cond_;
-    boost::condition_variable_any em_roll_check_cond_;
-    boost::condition_variable_any em_pitch_check_cond_;
-    boost::condition_variable_any em_yaw_check_cond_;
+    // boost::condition_variable_any em_depth_check_cond_;
+    // boost::condition_variable_any em_roll_check_cond_;
+    // boost::condition_variable_any em_pitch_check_cond_;
+    // boost::condition_variable_any em_yaw_check_cond_;
 
     /* Source lock for thread */
     boost::recursive_mutex ctrl_mutex_;
 
     /* Source lock for emergency event states */
-    boost::recursive_mutex em_depth_check_mutex_;
-    boost::recursive_mutex em_roll_check_mutex_;
-    boost::recursive_mutex em_pitch_check_mutex_;
-    boost::recursive_mutex em_yaw_check_mutex_;
-
+    //boost::recursive_mutex em_depth_check_mutex_;
+    //boost::recursive_mutex em_roll_check_mutex_;
+    //boost::recursive_mutex em_pitch_check_mutex_;
+    //boost::recursive_mutex em_yaw_check_mutex_;
     boost::recursive_mutex em_event_mutex_;
 
     /* Source lock for status*/
