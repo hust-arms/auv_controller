@@ -32,7 +32,7 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     this->mission_.theta_.Update();
 
     this->mission_.lateral_dist_ = (this->kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (this->kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
-    printf("LateralDist:%f\n", this->mission_.lateral_dist_);
+    // printf("LateralDist:%f\n", this->mission_.lateral_dist_);
 
     this->mission_.y_.ref_ = input.y_d_;
     this->mission_.y_.ref_dot_ = 0.0;
@@ -214,7 +214,7 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
         this->vel_controller_->setTargetParams(input.u_d_);
         // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
         output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
-        printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
+        // printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 }; 
 

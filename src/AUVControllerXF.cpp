@@ -37,7 +37,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     this->mission_.theta_.Update();
     
     this->mission_.lateral_dist_ = (this->kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (this->kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
-    printf("LateralDist:%f\n", this->mission_.lateral_dist_);
+    // printf("LateralDist:%f\n", this->mission_.lateral_dist_);
     
     this->mission_.y_.ref_ = input.y_d_;
     this->mission_.y_.ref_dot_ = 0.0;
@@ -183,7 +183,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     Eigen::Matrix<double,2,1> deltarud;
     deltarud << this->deltar_, this->deltas_;
 
-    printf("Lateral rudder resolution: forward rudder: %f, vertical rudder: %f\n", this->deltar_, this->deltas_);
+    // printf("Lateral rudder resolution: forward rudder: %f, vertical rudder: %f\n", this->deltar_, this->deltas_);
 
     Eigen::Matrix<double, 4, 2> x_rudder_map;
     x_rudder_map << 0.25, 0.25, 0.25, -0.25, 0.25, 0.25, 0.25, -0.25;
@@ -232,7 +232,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     }
 
     // Print control value of forward, afterward and orientation rudder
-    printf("uppper port: %f upper starboard: %f lower port: %f lower starboard: %f\n", this->deltaup_, this->deltaus_, this->deltalp_, this->deltals_);
+    // printf("uppper port: %f upper starboard: %f lower port: %f lower starboard: %f\n", this->deltaup_, this->deltaus_, this->deltalp_, this->deltals_);
     output.upper_p_ = this->deltaup_;
     output.upper_s_ = this->deltaus_;
     output.lower_p_ = this->deltalp_;
@@ -261,7 +261,7 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
         this->vel_controller_->setTargetParams(input.u_d_);
         // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
         output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
-        printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
+        // printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 }
 
