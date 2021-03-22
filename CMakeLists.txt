@@ -140,7 +140,7 @@ add_library(tcp_client
 )
 
 add_executable(reset_control_state_node
-    node/ResetCtrlStateClient.cpp
+    nodes/ResetCtrlStateClient.cpp
 )
 
 add_executable(armsauv_controller_test_node
@@ -157,6 +157,10 @@ add_executable(auv_pid_controller_test_node
 
 add_executable(auv_controller_exp_test_node
   test/AUVControllerExpTest.cpp
+)
+
+add_executable(auv_traj_follow_manager_node
+  nodes/AUVTrajFollowMissionNode.cpp
 )
 
 add_executable(async_tcp_client_test_node
@@ -185,6 +189,8 @@ add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS
 
 add_dependencies(auv_controller_exp_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_traj_follow_manager_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(async_tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(async_tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -202,6 +208,8 @@ target_link_libraries(auv_controller_test_node auv_base_controller file_writer $
 target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_controller_exp_test_node auv_controller_exp file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv_traj_follow_manager_node auv_traj_follow_manager_ros auv_controller_exp file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(async_tcp_client_test_node async_tcp_client ${catkin_LIBRARIES})
 
