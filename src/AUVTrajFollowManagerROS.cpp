@@ -19,29 +19,32 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
     ros::NodeHandle private_nh("~"); // private ros node handle
     ros::NodeHandle nh; // public ros node handle
 
-    // private_nh.searchParam("target_waypoint", wp_xmlrpc_);
-    // private_nh.param("desired_x_linear_velocity", u_d_, 3.0);
-    // private_nh.param("traj_follow_manage_period", manage_dt_, 0.1);
-    // private_nh.searchParam("target_waypoint", wp_xmlrpc_);
+    std::string wp_str;
+    // private_nh.getParam("target_waypoint", wp_xmlrpc_);
+    private_nh.getParam("target_waypoint", wp_str);
     private_nh.getParam("desired_x_linear_velocity", u_d_);
     private_nh.getParam("traj_follow_manage_period", manage_dt_);
+    private_nh.getParam("threshold", thre_);
 
-    // transform string to geometry_msgs::Point vector
-    if(!strToGeoPointVector(wp_xmlrpc_, wp_vec_))
+    if(!strToGeoPointVector(wp_str, wp_vec_))
     {
-        ROS_ERROR("Parse way point list false!");
+        ROS_ERROR("[AUVTrajFollowManagerROS]: Parse way point list false!\n");
     }
 
     if(debug_)
     {
         boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
-        printf("Initialize manager components!");
+        printf("[AUVTrajFollowManagerROS]: Initialize manager components!\n");
         // print_lock.unlock();
     }
 
     auv_control_info_pub_ = nh.advertise<auv_control_msgs::AUVCtrlInfo>(auv_name+"/control_info", 1); 
     ctrl_state_reset_cl_ = nh.serviceClient<auv_controller::ResetCtrlState>(auv_name+"/reset_ctrl_state"); 
+
     pose_sub_ = nh.subscribe<nav_msgs::Odometry>(auv_name+"/pose_gt", 1, boost::bind(&AUVTrajFollowManagerROS::posegtCb, this, _1));
+    imu_sub_ = nh.subscribe<sensor_msgs::Imu>(auv_name+"/imu", 1, boost::bind(&AUVTrajFollowManagerROS::imuCb, this, _1));
+    pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>(auv_name+"/pressure", 1, boost::bind(&AUVTrajFollowManagerROS::pressureCb, this, _1));
+    dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>(auv_name+"/dvl", 1, boost::bind(&AUVTrajFollowManagerROS::dvlCb, this, _1));
 
     thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/thrusters/0/input", 1);
     fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/0/input", 1);
@@ -55,8 +58,16 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
     wp_index_ = -1;
     is_start_mission_ = false;
 
-    ROS_INFO("desired x linear velocity: %f", u_d_);
-    ROS_INFO("manage period: %f", manage_dt_);
+    // pose initialization
+    x_ = 0.0; y_ = 0.0; z_ = 0.0; depth_ = 0.0; 
+    roll_ = 0.0; pitch_ = 0.0; yaw_ = 0.0;
+    u_ = 0.0; v_ = 0.0; w_ = 0.0;
+    roll_dot_ = 0.0; pitch_dot_ = 0.0; yaw_dot_ = 0.0;
+
+    printf("[AUVTrajFollowManagerROS]: namespace: %s\n", auv_name.c_str());
+    printf("[AUVTrajFollowManagerROS]: desired x linear velocity: %f\n", u_d_);
+    printf("[AUVTrajFollowManagerROS]: manage period: %f\n", manage_dt_);
+    printf("[AUVTrajFollowManagerROS]: follow threshold: %f\n", thre_);
 
     controller_ptr_ = boost::make_shared<auv_controller::AUVControllerExp>(auv_name, with_ff_, x_type_, debug_);
 }
@@ -64,19 +75,19 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
 //////////////////////////////////
 AUVTrajFollowManagerROS::~AUVTrajFollowManagerROS()
 {
-    if(manage_th_ != nullptr)
-    {
-        manage_th_->interrupt();
-        manage_th_->join();
-        delete manage_th_;
-        manage_th_ = nullptr;
-    }
     if(pub_th_ != nullptr)
     {
         pub_th_->interrupt();
         pub_th_->join();
         delete pub_th_;
         pub_th_ = nullptr;
+    }
+    if(manage_th_ != nullptr)
+    {
+        manage_th_->interrupt();
+        manage_th_->join();
+        delete manage_th_;
+        manage_th_ = nullptr;
     }
 }
 
@@ -86,17 +97,23 @@ void AUVTrajFollowManagerROS::start()
     if(debug_)
     {
         boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
-        printf("Traj follow manage thread has been created!");
+        printf("[AUVTrajFollowManagerROS]: Traj follow manage thread has been created!\n");
         // print_lock.unlock();
     }
 
-    controller_ptr_->startControl();
+    wp_index_ = 0;
+    is_start_mission_ = true;
 
-    pub_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::publishThread, this));
     manage_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::trajFollowManageThread, this));
+    pub_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::publishThread, this));
 
     int ctrl_status_flag = 2;
     controller_ptr_->setCtrlStatus(ctrl_status_flag);
+    controller_ptr_->startControl();
+
+    // is_start_mission_ = true;
+    // pub_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::publishThread, this));
+    // manage_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::trajFollowManageThread, this));
 }
 
 //////////////////////////////////
@@ -117,20 +134,31 @@ void AUVTrajFollowManagerROS::publishThread()
     while(nh.ok())
     {
         // Set auv states
-        auv_controller::ResetCtrlState srv;
-
         if(getMissionFlag())
         {
             if(x_type_)
             {
                 double upper_p, upper_s, lower_p, lower_s, thruster;
+                upper_p = 0.0; upper_s = 0.0; lower_p = 0.0; lower_s = 0.0; thruster = 0.0;
                 controller_ptr_->getCtrlVar(upper_p, upper_s, lower_p, lower_s, thruster);
+                if(debug_)
+                {
+                    boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
+                    printf("[AUVTrajFollowManagerROS]: Ctrl output: upper_p: %f upper_s: %f lower_p: %f lower_s: %f thruster: %f\n", 
+                       upper_p, upper_s, lower_p, lower_s, thruster);
+                }
                 publishActuatorMsgs(upper_p, upper_s, lower_p, lower_s, thruster);
             }
             else
             {
                 double fwdfin, backfin, vertfin, thruster;
+                fwdfin = 0.0; backfin = 0.0; vertfin = 0.0; thruster = 0.0;
                 controller_ptr_->getCtrlVar(fwdfin, backfin, vertfin, thruster);
+                if(debug_)
+                {
+                    boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
+                    printf("[AUVTrajFollowManagerROS]: Ctrl output: fwdfin: %f backfin: %f vertfin: %f\n", fwdfin, backfin, vertfin);
+                }
                 publishActuatorMsgs(fwdfin, backfin, vertfin, thruster);
             }
 
@@ -262,20 +290,27 @@ void AUVTrajFollowManagerROS::trajFollowManageThread()
         if(debug_)
         {
             boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
-            printf("Ctrl info: x: %f y: %f depth: %f yaw: %f pitch: %f u: %f\n",
+            printf("[AUVTrajFollowManagerROS]: Ctrl info: x_d: %f y_d: %f depth_d: %f yaw_d: %f pitch_d: %f u_d: %f\n",
                    x_d_, y_d_, depth_d_, yaw_d_, pitch_d_, u_d_);
         }
 
         // update status of vehicle
         double x, y, z, roll, yaw, pitch, u, v, w, roll_dot, pitch_dot, yaw_dot;
         getVehicleStatus(x, y, z, roll, pitch, yaw, u, v, w, roll_dot, pitch_dot, yaw_dot);
+        if(debug_)
+        {
+            boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
+            printf("[AUVTrajFollowManagerROS]: Pose: x: %f y: %f z: %f roll: %f pitch: %f yaw: %f u: %f v: %f w: %f roll_dot: %f pitch_dot: %f yaw_dot: %f\n", 
+                   x, y, z, roll, pitch, yaw, u, v, w, roll_dot, pitch_dot, yaw_dot);
+
+        }
         controller_ptr_->updatePose(x, y, z, roll, pitch, yaw, u, v, w, roll_dot, pitch_dot, yaw_dot);
 
         // check if vehicle accesses the end point
         if(isAccessEndPoint())
         {
             boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
-            printf("Vehicle accesses end of point, finish following!\n");
+            printf("[AUVTrajFollowManagerROS]: Vehicle accesses end of point, finish following!\n");
             // print_lock.unlock();
         }
 
@@ -313,18 +348,17 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
                 ++wp_index_;
                 // wp_index_lock.unlock();
             }
-
-            double p1x = wp_vec_[wp_index].x; double p1y = wp_vec_[wp_index].y;
-            double p2x = wp_vec_[wp_index+1].x; double p2y = wp_vec_[wp_index+1].y;
-            double line_k = std::atan2(p2y - p1y, p2x - p1x);
-
-            {
-                boost::unique_lock<boost::recursive_mutex> desired_info_lock(desired_info_mutex_);
-                depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = line_k; 
-                x_d_ = p1x + 0.2 * (p2x - p1x);
-                y_d_ = p1y + 0.2 * (p2y - p2y);
-                // desired_info_lock.unlock();
-            }
+        }
+        double p1x = wp_vec_[wp_index].x; double p1y = wp_vec_[wp_index].y;
+        double p2x = wp_vec_[wp_index+1].x; double p2y = wp_vec_[wp_index+1].y;
+        double line_k = std::atan2(p2y - p1y, p2x - p1x);
+        
+        {
+            boost::unique_lock<boost::recursive_mutex> desired_info_lock(desired_info_mutex_);
+            depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = line_k;
+            x_d_ = p1x + 0.2 * (p2x - p1x);
+            y_d_ = p1y + 0.2 * (p2y - p2y);
+            // desired_info_lock.unlock();
         }
     }  
 }

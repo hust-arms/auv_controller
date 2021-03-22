@@ -28,6 +28,7 @@
 #include "auv_controller/SetMissionStatus.h"
 
 /* boost lib */
+#include <boost/asio.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -110,7 +111,6 @@ private:
     bool getMissionFlag()
     {
         boost::unique_lock<boost::recursive_mutex> mission_flag_lock(mission_flag_mutex_);
-        bool flag = is_start_mission_;
         // mission_flag_lock.unlock();
         return is_start_mission_;
     }
@@ -131,8 +131,6 @@ private:
     double getGlobalX()
     {
         boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
-        double x = x_;
-        // pose_lock.unlock();
         return x_;
     }
 
@@ -142,8 +140,6 @@ private:
     double getGlobalY()
     {
         boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
-        double y = y_;
-        // pose_lock.unlock();
         return y_;
     }
 
@@ -153,8 +149,6 @@ private:
     double getGlobalZ()
     {
         boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
-        double z = z_;
-        // pose_lock.unlock();
         return z_;
     }
 
@@ -164,8 +158,6 @@ private:
     double getLinVelX()
     {
         boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
-        double u = u_;
-        // pose_lock.unlock();
         return u_;
     }
 
@@ -176,7 +168,6 @@ private:
     {
         boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
         x = x_; y = y_; z = z_;
-        // pose_lock.unlock();
     }
 
     /**
@@ -198,8 +189,6 @@ private:
     int getWayPointIndex()
     {
         boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
-        int wp_index = wp_index_;
-        // wp_index_lock.unlock();
         return wp_index_;
     }
   
@@ -207,11 +196,10 @@ private:
      * @brief Position & pose input
      */
     void posegtCb(const nav_msgs::Odometry::ConstPtr& msg){
-        boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
+        boost::unique_lock<boost::recursive_mutex> posegt_lock(posegt_mutex_);
         x_ = msg->pose.pose.position.x;
         y_ = msg->pose.pose.position.y;
         z_ = msg->pose.pose.position.z;
-        // pose_lock.unlock();
     }
 
     /* Sensors callback func */
@@ -238,7 +226,7 @@ private:
      */
     void pressureCb(const sensor_msgs::FluidPressure::ConstPtr& msg)
     {
-        boost::unique_lock<boost::recursive_mutex> imu_lock(pressure_mutex_);
+        boost::unique_lock<boost::recursive_mutex> pressure_lock(pressure_mutex_);
         depth_ = static_cast<double>((msg->fluid_pressure - 101) / 10.1) - 0.25;
     }
 
@@ -247,7 +235,7 @@ private:
      */
     void dvlCb(const uuv_sensor_ros_plugins_msgs::DVL::ConstPtr& msg)
     {
-        boost::unique_lock<boost::recursive_mutex> imu_lock(dvl_mutex_);
+        boost::unique_lock<boost::recursive_mutex> dvl_lock(dvl_mutex_);
         u_ = msg->velocity.x;
         v_ = msg->velocity.y;
         w_ = msg->velocity.z;
@@ -305,6 +293,7 @@ private:
     boost::recursive_mutex manage_mutex_;
 
     boost::recursive_mutex pose_mutex_;
+    boost::recursive_mutex posegt_mutex_;
     boost::recursive_mutex imu_mutex_;
     boost::recursive_mutex pressure_mutex_;
     boost::recursive_mutex dvl_mutex_;
