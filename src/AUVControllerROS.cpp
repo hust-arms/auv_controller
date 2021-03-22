@@ -16,14 +16,14 @@
 #include "auv_controller/AUVControllerROS.h"
 
 /* Common test macro */
-// #define SM_CTRL
+#define SM_CTRL
 // #define THRUST_TEST
 // #define SPIRAL_TEST
 // #define XRUDDER_TEST
 
 /* Emergency test macro*/
 // # define DEPTH_EM_TEST
-# define PITCH_EM_TEST
+// # define PITCH_EM_TEST
 // # define YAW_EM_TEST
 
 namespace auv_controller{
@@ -52,7 +52,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_y", y_d_, 0.0);
-   private_nh.param("desired_depth", depth_d_, 20.0);
+   private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
    private_nh.param("desired_pitch", pitch_d_, pitch_d);
@@ -70,23 +70,12 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    private_nh.param("sigma", sigma, -1.0);
 
    // Initialization of publisher and subscriber
-   // imu_sub_ = nh.subscribe<sensor_msgs::Imu>("/armsauv/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
    imu_sub_ = nh.subscribe<sensor_msgs::Imu>(auv_name+"/imu", 1, boost::bind(&AUVControllerROS::imuCb, this, _1));
-   // pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>("/armsauv/pressure", 1, boost::bind(&AUVControllerROS::pressureCb, this, _1));
    pressure_sub_ = nh.subscribe<sensor_msgs::FluidPressure>(auv_name+"/pressure", 1, boost::bind(&AUVControllerROS::pressureCb, this, _1));
-   // posegt_sub_ = nh.subscribe<nav_msgs::Odometry>("/armsauv/pose_gt", 1, boost::bind(&AUVControllerROS::posegtCb, this, _1));
    posegt_sub_ = nh.subscribe<nav_msgs::Odometry>(auv_name+"/pose_gt", 1, boost::bind(&AUVControllerROS::posegtCb, this, _1));
-   // dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>("/armsauv/dvl", 1, boost::bind(&AUVControllerROS::dvlCb, this, _1));
    dvl_sub_ = nh.subscribe<uuv_sensor_ros_plugins_msgs::DVL>(auv_name+"/dvl", 1, boost::bind(&AUVControllerROS::dvlCb, this, _1));
    /* reserved for desired params subscription */ 
    
-   // thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/thrusters/0/input", 1);
-   // fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/0/input", 1);
-   // fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/1/input", 1);
-   // fin2_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/2/input", 1);
-   // fin3_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/3/input", 1);
-   // fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/4/input", 1);
-   // fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/fins/5/input", 1);
    thruster0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/thrusters/0/input", 1);
    fin0_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/0/input", 1);
    fin1_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/1/input", 1);
@@ -95,9 +84,6 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    fin4_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/4/input", 1);
    fin5_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/fins/5/input", 1);
 
-   // front_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/front_rudder_angle", 1);
-   // back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/back_rudder_angle", 1);
-   // vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>("/armsauv/vertical_rudder_angle", 1);
    front_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/front_rudder_angle", 1);
    back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/back_rudder_angle", 1);
    vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/vertical_rudder_angle", 1);
@@ -230,15 +216,12 @@ void AUVControllerROS::startControl(){
 #ifdef SM_CTRL
     ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVControllerROS::velControlThread, this));
-    // ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::controlThread, this));
-    // vel_ctrl_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::velControlThread, this));
 #endif
-    em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
-    em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
-    em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emPitchCheckThread, this));
-    em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emYawCheckThread, this));
+    // em_depth_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emDepthCheckThread, this));
+    // em_roll_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emRollCheckThread, this));
+    // em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emPitchCheckThread, this));
+    // em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVControllerROS::emYawCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVControllerROS::publishThread, this));
-    // pub_thread_ = boost::make_unique<ThreadPtr>(boost::bind(&AUVControllerROS::publishThread, this));
 }
 
 /////////////////////////////////////
@@ -1189,33 +1172,48 @@ bool AUVControllerROS::resetCtrlState(auv_controller::ResetCtrlState::Request& r
     if(req.IsReset == 0)
     {
         // Reset control state to standby
+        if(ctrl_state_ != AUVCtrlState::STANDBY)
         {
             boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
             ctrl_state_ = AUVCtrlState::STANDBY;
+            res.FeedbackMsg = "Reset control state to standby!";
         }
-        res.FeedbackMsg = "Reset control state to standby!";
+        else
+        {
+            res.FeedbackMsg = "State was aready set to standby!";
+        }
         return true;
     }
 
     if(req.IsReset == 1)
     {
         // Reset control state to open control
+        if(ctrl_state_ != AUVCtrlState::OPENCTRL)
         {
             boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
             ctrl_state_ = AUVCtrlState::OPENCTRL;
+            res.FeedbackMsg = "Reset control state to open loop control!";
         }
-        res.FeedbackMsg = "Reset control state to open loop control!";
+        else
+        {
+            res.FeedbackMsg = "State was already set to open loop control!";
+        }
         return true;
     }
 
     if(req.IsReset == 2)
     {
         // Reset control state to open control
+        if(ctrl_state_ != AUVCtrlState::CTRL)
         {
             boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
             ctrl_state_ = AUVCtrlState::CTRL;
+            res.FeedbackMsg = "Reset control state to close loop control!";
         }
-        res.FeedbackMsg = "Reset control state to close loop control!";
+        else
+        {
+            res.FeedbackMsg = "State was already set to close loop control!";
+        }
         return true;
     }
 }

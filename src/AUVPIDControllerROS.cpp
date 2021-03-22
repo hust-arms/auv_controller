@@ -104,7 +104,8 @@ AUVPIDControllerROS::AUVPIDControllerROS(std::string auv_name, bool with_ff, boo
    else{
        if(x_type){
            ROS_INFO("Model with X type rudder");
-           controller_ = boost::make_shared<AUVPIDControllerXF>();
+           // controller_ = boost::make_shared<AUVPIDController>(new AUVPIDControllerXF());
+           controller_ = new AUVPIDControllerXF();
        }
        else{
            ROS_INFO("Model without front fins");
@@ -158,10 +159,10 @@ AUVPIDControllerROS::~AUVPIDControllerROS(){
         ctrl_thread_ = nullptr;
     }
 
-    // if(controller_ != nullptr){
-    //     delete controller_;
-    //     controller_ = nullptr;
-    // }
+    if(controller_ != nullptr){
+        delete controller_;
+        controller_ = nullptr;
+    }
     //
     if(em_depth_check_thread_ != nullptr)
     {
@@ -204,27 +205,28 @@ void AUVPIDControllerROS::startControl(){
     ctrl_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::controlThread, this));
     vel_ctrl_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::velControlThread, this));
 #endif
-    em_depth_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emDepthCheckThread, this));
-    em_roll_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emRollCheckThread, this));
-    em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emPitchCheckThread, this));
-    em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emYawCheckThread, this));
+    // em_depth_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emDepthCheckThread, this));
+    // em_roll_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emRollCheckThread, this));
+    // em_pitch_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emPitchCheckThread, this));
+    // em_yaw_check_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::emYawCheckThread, this));
     pub_thread_ = new boost::thread(boost::bind(&AUVPIDControllerROS::publishThread, this));
 }
 
 void AUVPIDControllerROS::controlThread(){
     ros::NodeHandle nh;
-    ros::Timer ctrl_timer;
-    bool wait_for_wake = false;
+    // ros::Timer ctrl_timer;
+    // bool wait_for_wake = false;
 
     boost::unique_lock<boost::recursive_mutex> lock(ctrl_mutex_);
     while(nh.ok()){
-        while(wait_for_wake || !(ctrl_state_ == AUVCtrlState::CTRL)){
+        // while(wait_for_wake || !(ctrl_state_ == AUVCtrlState::CTRL)){
+        while(ctrl_state_ != AUVCtrlState::CTRL){
             // if(debug_){
             //     std::lock_guard<std::mutex> guard(print_mutex_);
             //     printf("Control thread is suspending\n");
             // }
             ctrl_cond_.wait(lock);
-            wait_for_wake = false;
+            // wait_for_wake = false;
         }
         // control thread wake
         // if(debug_){
@@ -233,7 +235,7 @@ void AUVPIDControllerROS::controlThread(){
         // }
         lock.unlock();
 
-        ros::Time ctrl_start_t = ros::Time::now();
+        // ros::Time ctrl_start_t = ros::Time::now();
 
         /* get status */
         AUVKineticSensor sensor_msg;
@@ -323,17 +325,20 @@ void AUVPIDControllerROS::controlThread(){
 
         lock.lock();
 
-        if(ctrl_dt_ > 0.0){
-            ros::Duration sleep_time = (ctrl_start_t + ros::Duration(ctrl_dt_)) - ros::Time::now();
-            if(sleep_time > ros::Duration(0.0)){
-                // if(debug_){
-                //     std::lock_guard<std::mutex> guard(print_mutex_);
-                //     printf("Control thread is waiting for wake\n");
-                // }
-                wait_for_wake = true;
-                ctrl_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeControlThread, this);
-            }
-        }
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1000 * ctrl_dt_));
+
+
+        // if(ctrl_dt_ > 0.0){
+        //     ros::Duration sleep_time = (ctrl_start_t + ros::Duration(ctrl_dt_)) - ros::Time::now();
+        //     if(sleep_time > ros::Duration(0.0)){
+        //         // if(debug_){
+        //         //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //         //     printf("Control thread is waiting for wake\n");
+        //         // }
+        //         wait_for_wake = true;
+        //         ctrl_timer = nh.createTimer(sleep_time, &AUVPIDControllerROS::wakeControlThread, this);
+        //     }
+        // }
     }
 }
 
@@ -525,20 +530,19 @@ void AUVPIDControllerROS::publishThread(){
         }
 
         // print statues info
-        if(!x_type_)
-        {
-            std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f\n}", 
-                   vertfin, fwdfin, backfin, rpm);
-        }
-        else
-        {
-            std::lock_guard<std::mutex> guard(print_mutex_);
-            printf("Control output:{upper port fin:%8f upper starboard fin:%8f lower port fin:%8f lower starboard fin:%8f rpm:%8f\n}", 
-                   upper_p, upper_s, lower_p, lower_s, rpm);
-        }
+        // if(!x_type_)
+        // {
+        //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //     printf("Control output:{vertical fin:%8f forward fin:%8f back fin:%8f rpm:%8f\n}", 
+        //            vertfin, fwdfin, backfin, rpm);
+        // }
+        // else
+        // {
+        //     std::lock_guard<std::mutex> guard(print_mutex_);
+        //     printf("Control output:{upper port fin:%8f upper starboard fin:%8f lower port fin:%8f lower starboard fin:%8f rpm:%8f\n}", 
+        //            upper_p, upper_s, lower_p, lower_s, rpm);
+        // }
 
-        // publish control output
         if(!x_type_)
         {
             applyActuatorInput(vertfin, fwdfin, backfin, rpm);

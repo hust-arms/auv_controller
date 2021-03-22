@@ -390,7 +390,8 @@ private:
 
 private:
     /* Controller */
-    AUVPIDControllerPtr controller_;
+    // AUVPIDControllerPtr controller_;
+    AUVPIDController* controller_;
     PIDControllerPtr u_controller_;
 
     /* ROS components */
