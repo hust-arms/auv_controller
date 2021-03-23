@@ -31,7 +31,7 @@ void AUVControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AU
     this->mission_.theta_.ref_dot2_ = (this->mission_.theta_.ref_dot_ - this->mission_.theta_.pre_ref_dot_) / dt;
     this->mission_.theta_.Update();
 
-    this->mission_.lateral_dist_ = (this->kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) + (this->kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
+    this->mission_.lateral_dist_ = (this->kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (this->kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
     printf("LateralDist:%f\n", this->mission_.lateral_dist_);
 
     this->mission_.y_.ref_ = input.y_d_;
