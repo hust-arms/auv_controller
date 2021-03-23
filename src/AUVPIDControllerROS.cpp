@@ -45,6 +45,7 @@ AUVPIDControllerROS::AUVPIDControllerROS(std::string auv_name, bool with_ff, boo
    private_nh.param("publish_period", pub_dt_, 0.1);
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
+   private_nh.param("desired_x", x_d_, 40.0);
    private_nh.param("desired_y", y_d_, 0.0);
    private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
@@ -264,7 +265,7 @@ void AUVPIDControllerROS::controlThread(){
         }
 
         // Create Controller input
-        AUVControllerInput input(getDesiredDepth(), getDesiredPitch(), getDesiredYaw(), 30.0, -getDesiredY(), getDesiredLinVelX());
+        AUVControllerInput input(getDesiredDepth(), -getDesiredPitch(), -getDesiredYaw(), getDesiredX(), -getDesiredY(), getDesiredLinVelX());
 
         // Print control input
         if(debug_){
@@ -991,18 +992,18 @@ void AUVPIDControllerROS::applyActuatorInput(double upper_p, double upper_s, dou
     uuv_gazebo_ros_plugins_msgs::FloatStamped fins_msg;
     fins_msg.header = header;
     
-    fins_msg.data = upper_p;
-    // fins_msg.data = -upper_p;
+    // fins_msg.data = upper_p;
+    fins_msg.data = -upper_p;
     fin0_pub_.publish(fins_msg);
-    fins_msg.data = upper_s;
-    // fins_msg.data = -upper_s;
+    // fins_msg.data = upper_s;
+    fins_msg.data = -upper_s;
     fin1_pub_.publish(fins_msg);
 
-    fins_msg.data = lower_p; 
-    // fins_msg.data = -lower_p; 
+    // fins_msg.data = lower_p; 
+    fins_msg.data = -lower_p; 
     fin2_pub_.publish(fins_msg);
-    fins_msg.data = lower_s;
-    // fins_msg.data = -lower_s;
+    // fins_msg.data = lower_s;
+    fins_msg.data = -lower_s;
     fin3_pub_.publish(fins_msg);
 }
 

@@ -169,6 +169,14 @@ private:
     /**
      * @brief Return desired lateral deviation
      */
+    double getDesiredX(){
+        std::lock_guard<std::mutex> guard(desired_mutex_);
+        return x_d_;
+    }
+
+    /**
+     * @brief Return desired lateral deviation
+     */
     double getDesiredY(){
         std::lock_guard<std::mutex> guard(desired_mutex_);
         return y_d_;
@@ -457,6 +465,7 @@ private:
     double roll_, pitch_, yaw_; // pose in vehicle frame
     double roll_dot_, pitch_dot_, yaw_dot_; // angular velocity in vehicle frame
 
+    double x_d_;
     double depth_d_, pitch_d_, y_d_, yaw_d_; // desired params
     double u_d_;
 
