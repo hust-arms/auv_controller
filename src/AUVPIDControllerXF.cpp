@@ -23,24 +23,26 @@ void AUVPIDControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUV
     this->kinetic_.setPosition(sensor.x_, sensor.y_, sensor.z_, sensor.roll_, sensor.pitch_, sensor.yaw_);
     this->kinetic_.setVelocity(sensor.x_dot_, sensor.y_dot_, sensor.z_dot_, sensor.roll_dot_, sensor.pitch_dot_, sensor.yaw_dot_);
 
-    double vertical_dev = (this->kinetic_.x_ - input.x_d_) *sin(input.pitch_d_) - (this->kinetic_.z_ - input.depth_d_) * cos(input.pitch_d_);
-    printf("VerticalDist: %f\n", vertical_dev);
+    double vertical_dev = this->kinetic_.z_ - input.depth_d_;
+    // printf("VerticalDist: %f\n", vertical_dev);
 
     double lateral_dev = (this->kinetic_.x_ - input.x_d_) * sin(input.yaw_d_) - (this->kinetic_.y_ - input.y_d_) * cos(input.yaw_d_);
-    printf("LateralDist: %f\n", lateral_dev);
+    // printf("LateralDist: %f\n", lateral_dev);
 
     /* Depth PID control */
-    // double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, 4 * this->body_.l_);
-    double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, 2 * this->body_.l_);
+    // double ref_pitch = input.pitch_d_ + std::atan2(vertical_dev, 2 * this->body_.l_);
+    double ref_pitch = input.pitch_d_ + static_cast<double>(pitch_limit_ / 57.3) * ((exp(pitch_k_ * vertical_dev) - 1) / (exp(pitch_k_ * vertical_dev) + 1));
     this->depth_controller_->setTargetParams(ref_pitch);
-    this->deltas_ = this->depth_controller_->positionalPID(sensor.pitch_);
-    printf("Ref pitch: %f, Current pitch: %f\n", ref_pitch, sensor.pitch_);
+    this->deltas_ = this->depth_controller_->positionalPID(sensor.pitch_, dt);
+    // printf("Ref pitch: %f, Current pitch: %f\n", ref_pitch, sensor.pitch_);
 
     /* Lateral deviation PID control */
-    // double ref_yaw = input.yaw_d_ + std::atan2(lateral_dev, 4 * this->body_.l_);
-    double ref_yaw = input.yaw_d_ + std::atan2(lateral_dev, this->body_.l_);
+    double ref_yaw = input.yaw_d_ + std::atan2(lateral_dev, yaw_k_ * this->body_.l_);
+
+    // Transform yaw from [-pi,pi] to [0,2*pi], if yaw accesses pi or -pi, the controller will encounter the fluctuation
+
     this->latdev_controller_->setTargetParams(ref_yaw);
-    this->deltar_ = this->latdev_controller_->positionalPID(sensor.yaw_);
+    this->deltar_ = this->latdev_controller_->positionalPID(sensor.yaw_, dt);
     printf("Ref yaw: %f, Current yaw: %f\n", ref_yaw, sensor.yaw_);
 
     /* X type rudder Allocate */
@@ -54,27 +56,18 @@ void AUVPIDControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUV
     x_rudder_map << 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, -0.5;
     x_rudder_map *= sqrt(2);
     
-    // std::vector<double> x_rudder_mapvec{0.25, 0.25, 0.25, 0.25, 0.25, -0.25, 0.25, -0.25};
-    // Eigen::Map<DynamicMatrix> x_rudder_map(x_rudder_mapvec.data(), 2, 4);
-    // x_rudder_map *= sqrt(2);
-    // 
-    // // auto deltar = x_rudder_map.jacobiSvd(Eigen::ComputeFullU | Eigen::ComputeFullU).solve(deltarud); 
-    // // auto svd = x_rudder_map.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
-    // Eigen::JacobiSVD<DynamicMatrix> svd(x_rudder_map, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    // double tolerance = std::numeric_limits<double>::epsilon() * std::max(x_rudder_map.cols(), x_rudder_map.rows()) * 
-    //     svd.singularValues().array().abs()(0);
-    // auto x_rudder_mapinv = svd.matrixV() * (svd.singularValues().array().abs() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() * 
-    //     svd.matrixU().adjoint();
-    // 
-    // auto deltar = x_rudder_mapinv * deltarud;
     auto deltar = x_rudder_map * deltarud;
 
     std::cout << "X allocate: " << deltar << std::endl;
 
-    this->deltaus_ = deltar(0);
-    this->deltaup_ = deltar(1);
-    this->deltalp_ = deltar(2);
-    this->deltals_ = deltar(3);
+    // this->deltaus_ = deltar(0);
+    // this->deltaup_ = deltar(1);
+    // this->deltalp_ = deltar(2);
+    // this->deltals_ = deltar(3);
+    this->deltaus_ = deltar(0); 
+    this->deltals_ = deltar(1); 
+    this->deltalp_ = deltar(2); 
+    this->deltaup_ = deltar(3); 
 
     if(fabs(this->deltaup_) > 30 / 57.3){
         this->deltaup_ = (30 / 57.3) * sign(this->deltaup_);
@@ -118,7 +111,7 @@ void AUVPIDControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUV
     {
         this->vel_controller_->setTargetParams(input.u_d_);
         // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
-        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
+        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_, dt);
         printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 }

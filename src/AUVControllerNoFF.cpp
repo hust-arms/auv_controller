@@ -208,7 +208,7 @@ void AUVControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVC
     {
         this->vel_controller_->setTargetParams(input.u_d_);
         // output.rpm_ = this->vel_controller_->positionalPID(sensor.x_dot_);
-        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_);
+        output.rpm_ = this->vel_controller_->incrementalPID(kinetic_.u_, dt);
         //printf("Deisred u: %f Current u: %f\n", input.u_d_, kinetic_.u_);
     }
 
