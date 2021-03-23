@@ -99,6 +99,22 @@ public:
         double kppsi, double kipsi, double kdpsi);
 
     /**
+     * @brief Set depth control variable
+     */
+    void setDepthCtrlVar(const double& ang_limit, const unsigned int& k){
+        pitch_limit_ = ang_limit;
+        pitch_k_ = k;
+    }
+
+    /**
+     * @brief Set lateral control variable
+     */
+    void setLateralCtrlVar(const unsigned int& k)
+    {
+        yaw_k_ = k;
+    }
+
+    /**
      * @brief Set control parameters
      */ 
     bool setCtrlParams(const std::vector<double>& ctrl);
@@ -163,6 +179,11 @@ protected:
     // Commands
     double deltab_, deltas_, deltar_;
     double deltaup_, deltaus_, deltalp_, deltals_; // for X type rudder
+
+    // control var
+    double pitch_limit_;
+    unsigned int pitch_k_;
+    unsigned int yaw_k_;
     
     // Const value
     const unsigned int body_num_ = 13;
