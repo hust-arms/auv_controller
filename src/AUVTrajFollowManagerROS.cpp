@@ -332,8 +332,8 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
 { 
     // get vehicle position
     double x, y, z;
-    // getPosition(x, y, z);
-    getNEDPosition(x, y, z);
+    getPosition(x, y, z);
+    // getNEDPosition(x, y, z);
 
     // get index of current followed waypoint
     int wp_index = getWayPointIndex();
@@ -347,8 +347,8 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
         {
             boost::unique_lock<boost::recursive_mutex> desired_info_lock(desired_info_mutex_);
             depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = line_k;
-            x_d_ = p1x + 0.2 * (p2x - p1x);
-            y_d_ = p1y + 0.2 * (p2y - p2y);
+            x_d_ = p1x;
+            y_d_ = p1y;
             // desired_info_lock.unlock();
         }
 
@@ -371,8 +371,8 @@ bool AUVTrajFollowManagerROS::isAccessEndPoint()
 {
     // get vehicle position
     double x, y, z;
-    // getPosition(x, y, z);
-    getNEDPosition(x, y, z);
+    getPosition(x, y, z);
+    // getNEDPosition(x, y, z);
 
     int wp_index = getWayPointIndex();
 

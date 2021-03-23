@@ -287,7 +287,7 @@ void AUVControllerExp::controlThread(){
         }
 
         // Create Controller input
-        AUVControllerInput input(getDesiredDepth(), -getDesiredPitch(), -getDesiredYaw(), 30.0, -getDesiredY(), getDesiredLinVelX());
+        AUVControllerInput input(getDesiredDepth(), -getDesiredPitch(), -getDesiredYaw(), -getDesiredX(), -getDesiredY(), getDesiredLinVelX());
 
         // Print control input
         if(debug_){
