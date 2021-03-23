@@ -22,16 +22,38 @@ void PIDController::resetDeviation(){
     params_lock.unlock();
 }
 
-double PIDController::positionalPID(double params_cur){
+double PIDController::positionalPID(double params_cur, double dt){
     dev_ = -(params_cur - params_tar_);
-    dev_integral_ += dev_;
-    double res = kp_ * dev_ + ki_ * dev_integral_ + kd_ * (dev_ - dev_last_); // position pid
+    if(is_angle_)
+    {
+        if(dev_ * 57.3 >= 180.0)
+        {
+            dev_ = dev_ - pi_ * 2.0;
+        }
+        if(dev_ * 57.3 <= -180.0)
+        {
+            dev_ = dev_ + pi_ * 2.0;
+        }
+    }
+    dev_integral_ += dev_ * dt; // integral item
+    double res = kp_ * dev_ + ki_ * dev_integral_ + kd_ * (dev_ - dev_last_) / dt; // position pid
     dev_last_ = dev_;
     return res;
 }
 
-double PIDController::incrementalPID(double params_cur){
+double PIDController::incrementalPID(double params_cur, double dt){
     dev_ = -(params_cur - params_tar_);
+    if(is_angle_)
+    {
+        if(dev_ * 57.3 >= 180.0)
+        {
+            dev_ = dev_ - pi_ * 2.0;
+        }
+        if(dev_ * 57.3 <= -180.0)
+        {
+            dev_ = dev_ + pi_ * 2.0;
+        }
+    }
     double res = kp_ * (dev_ - dev_last_)  + ki_ * dev_ + kd_ * (dev_ + dev_last_ - 2.0 * dev_last_bef_);
     dev_last_bef_ = dev_last_; 
     dev_last_ = dev_;
