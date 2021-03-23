@@ -270,6 +270,15 @@ private:
         std::lock_guard<std::mutex> guard(ctrl_info_mutex_);
         return pitch_d_;
     }
+
+    /**
+     * @brief Return desired lateral deviation
+     */
+    double getDesiredX()
+    {
+        std::lock_guard<std::mutex> guard(ctrl_info_mutex_);
+        return x_d_;
+    }
     
     /**
      * @brief Return desired lateral deviation
