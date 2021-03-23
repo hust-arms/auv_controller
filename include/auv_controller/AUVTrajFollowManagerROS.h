@@ -171,6 +171,15 @@ private:
     }
 
     /**
+     * @brief Get vehicle pose 
+     */
+    void getNEDPosition(double& x, double& y, double& z)
+    {
+        boost::unique_lock<boost::recursive_mutex> pose_lock(pose_mutex_);
+        x = x_; y = -y_; z = -z_;
+    }
+
+    /**
      * @biref Get vehicle status
      */
     void getVehicleStatus(double& x, double& y, double& z, double& roll, double& pitch, double& yaw,

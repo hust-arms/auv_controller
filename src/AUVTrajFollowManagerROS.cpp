@@ -332,23 +332,14 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
 { 
     // get vehicle position
     double x, y, z;
-    getPosition(x, y, z);
+    // getPosition(x, y, z);
+    getNEDPosition(x, y, z);
 
     // get index of current followed waypoint
     int wp_index = getWayPointIndex();
 
     if(wp_index >= 0 && wp_index < wp_vec_.size())
     {
-        // check if vehicle access the field of way point
-        if(abs(x - wp_vec_[wp_index].x) <= thre_ &&
-           abs(y - wp_vec_[wp_index].y) <= thre_)
-        {
-            {
-                boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
-                ++wp_index_;
-                // wp_index_lock.unlock();
-            }
-        }
         double p1x = wp_vec_[wp_index].x; double p1y = wp_vec_[wp_index].y;
         double p2x = wp_vec_[wp_index+1].x; double p2y = wp_vec_[wp_index+1].y;
         double line_k = std::atan2(p2y - p1y, p2x - p1x);
@@ -360,23 +351,37 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
             y_d_ = p1y + 0.2 * (p2y - p2y);
             // desired_info_lock.unlock();
         }
+
+        double lateral_dist = (x - x_d_) * sin(yaw_d_) - (y - y_d_) * cos(yaw_d_); // In NED frame
+
+        // check if vehicle access the field of way point
+        if(abs(lateral_dist) <= thre_)
+        {
+            {
+                boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
+                ++wp_index_;
+                // wp_index_lock.unlock();
+            }
+        }
     }  
 }
 
 //////////////////////////////////
 bool AUVTrajFollowManagerROS::isAccessEndPoint()
 {
-    int wp_index = getWayPointIndex();
-
     // get vehicle position
     double x, y, z;
-    getPosition(x, y, z);
+    // getPosition(x, y, z);
+    getNEDPosition(x, y, z);
+
+    int wp_index = getWayPointIndex();
 
     // if vehicle accesses the end way point
     if(wp_index == wp_vec_.size())
     {
-        if(abs(x - wp_vec_[wp_index].x) <= thre_ &&
-           abs(y - wp_vec_[wp_index].y) <= thre_)
+        double euclidean_dist = sqrt(pow(x - wp_vec_[wp_index].x, 2) + pow(y - wp_vec_[wp_index].y, 2));
+
+        if(euclidean_dist <= thre_)
         {
             {
                 boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
