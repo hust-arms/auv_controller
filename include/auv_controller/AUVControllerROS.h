@@ -34,6 +34,8 @@
 #include <tf/transform_datatypes.h>
 
 #include <armsauv_msgs/DesiredParams.h>
+#include <auv_control_msgs/AUVCtrlInfo.h>
+#include <auv_control_msgs/AUVCtrlDeviation.h>
 
 #include "AUVBaseController.h"
 #include "AUVControllerWithFF.h"
@@ -435,6 +437,8 @@ private:
     ros::Publisher fin0_pub_, fin1_pub_, fin2_pub_, fin3_pub_, fin4_pub_, fin5_pub_;
     ros::Publisher front_rudder_ang_pub_, back_rudder_ang_pub_, vert_rudder_ang_pub_;
     ros::Publisher thruster0_pub_; 
+
+    ros::Publisher ctrl_info_pub_, ctrl_dev_pub_;
 
     ros::Subscriber imu_sub_, pressure_sub_, posegt_sub_, dvl_sub_; // sensors messages sub
     ros::Subscriber desired_sub_;

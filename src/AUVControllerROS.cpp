@@ -89,6 +89,9 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    back_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/back_rudder_angle", 1);
    vert_rudder_ang_pub_ = nh.advertise<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name+"/vertical_rudder_angle", 1);
 
+   ctrl_info_pub_ = nh.advertise<auv_control_msgs::AUVCtrlInfo>(auv_name + "/ctrl_info", 1);
+   ctrl_dev_pub_ = nh.advertise<auv_control_msgs::AUVCtrlDeviation>(auv_name + "/ctrl_deviation", 1);
+
    ctrl_state_reset_srv_ = nh.advertiseService("reset_ctrl_state", &AUVControllerROS::resetCtrlState, this);
 
    /* initialize controller */
@@ -569,6 +572,24 @@ void AUVControllerROS::publishThread(){
         {
             applyActuatorInput(upper_p, upper_s, lower_p, lower_s, rpm);
         }
+
+        auv_control_msgs::AUVCtrlInfo ctrl_info_msg;
+        ctrl_info_msg.desiredx = getDesiredX();
+        ctrl_info_msg.desiredy = getDesiredY();
+        ctrl_info_msg.desireddepth = getDesiredDepth();
+        ctrl_info_msg.desiredpitch = getDesiredPitch();
+        ctrl_info_msg.desiredyaw = getDesiredYaw();
+        ctrl_info_msg.desiredu = getDesiredLinVelX();
+
+        auv_control_msgs::AUVCtrlDeviation ctrl_dev_msg;
+        ctrl_dev_msg.depthdev = getDesiredDepth() + getGlobalZ();
+        double desired_yaw = getDesiredYaw();
+        ctrl_dev_msg.latdistdev = (getGlobalX() - getDesiredX()) * sin(desired_yaw) - (getGlobalY() - getDesiredY()) * cos(desired_yaw);
+        ctrl_dev_msg.yawdev = getYaw() - desired_yaw;
+        ctrl_dev_msg.pitchdev = getPitch() - getDesiredPitch();
+
+        ctrl_info_pub_.publish(ctrl_info_msg);
+        ctrl_dev_pub_.publish(ctrl_dev_msg);
 
         boost::this_thread::sleep(boost::posix_time::milliseconds(pub_dt_ * 1000));
     };
