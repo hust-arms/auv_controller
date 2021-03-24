@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+    <!--<arg name="auv_name" default="armsauv"/>-->
+    <arg name="auv_name" default="auv324"/>
+    <arg name="with_ff" default="0"/>
+    <arg name="x_type" default="1"/>
+    <arg name="debug" default="1" />
+    <arg name="mission" default="3" /> <!-- fixed depth & lateral distance -->
+
+    <node name="auv_ctrlmsgs_recorder_node" pkg="auv_controller" type="auv_ctrlmsgs_recorder_node" 
+        respawn="false" output="screen" args="$(arg auv_name) $(arg with_ff) $(arg x_type) $(arg debug)">
+        <rosparam param="filename">control_record</rosparam>
+        <rosparam param="path">../record/</rosparam>
+        <rosparam param="frequency">1</rosparam>
+    </node>
+</launch>
