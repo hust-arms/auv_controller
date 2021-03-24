@@ -65,20 +65,26 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
         }
         break;
     case 2:
+        mission = "mission: Fixed depth & lateral distance";
+        if(!fw_ptr_->writeData(mission))
+        {
+            return false;
+        }
+    case 3:
         mission = "mission: Fixed Yaw";
         if(!fw_ptr_->writeData(mission))
         {
             return false;
         }
         break;
-    case 3:
+    case 4:
         mission = "mission: Multi point";
         if(!fw_ptr_->writeData(mission))
         {
             return false;
         }
         break;
-    case 4:
+    case 5:
         mission = "mission: Docking";
         if(!fw_ptr_->writeData(mission))
         {

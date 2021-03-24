@@ -18,11 +18,16 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
     ros::NodeHandle private_nh("~");
 
     // Params configuration
-    private_nh.getParam("mission", mission_);
-    private_nh.getParam("with_ff", with_ff_);
-    private_nh.getParam("x_type", x_type_);
-    private_nh.getParam("debug", debug_);
-    private_nh.getParam("auv_name", auv_name_);
+    // private_nh.getParam("mission", mission_);
+    private_nh.param("mission", mission_, 3);
+    // private_nh.getParam("with_ff", with_ff_);
+    private_nh.param("with_ff", with_ff_, false);
+    // private_nh.getParam("x_type", x_type_);
+    private_nh.param("x_type", x_type_, true);
+    // private_nh.getParam("debug", debug_);
+    private_nh.param("debug", debug_, true);
+    // private_nh.getParam("auv_name", auv_name_);
+    private_nh.param("auv_name", auv_name_, std::string("auv324"));
     private_nh.param("file_name", filename_, std::string("control_record"));
     private_nh.param("path", path_, std::string("../record/"));
     private_nh.param("frequency", record_freq_, 1);
@@ -83,10 +88,29 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
     vert_lo_fin_sub_ = nh.subscribe<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name_ + vert_lo_fin_topic, 1, 
                         boost::bind(&AUVCtrlMsgsRecorderROS::vertLowerFinCb, this, _1));
 
+    auv_ctrl_info_sub_ = nh.subscribe<auv_control_msgs::AUVCtrlInfo>(auv_name_ + "/ctrl_info", 1,
+                        boost::bind(&AUVCtrlMsgsRecorderROS::auvCtrlInfoCb, this, _1));
+    auv_ctrl_dev_sub_ = nh.subscribe<auv_control_msgs::AUVCtrlDeviation>(auv_name_ + "/ctrl_deviation", 1,
+                        boost::bind(&AUVCtrlMsgsRecorderROS::auvCtrlDeviationCb, this, _1));
+
+    if(debug_)
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
+        printf("[AUVCtrlMsgsRecorderROS]: model info: with front fins: %d x_type: %d\n", with_ff_, x_type_);
+        printf("[AUVCtrlMsgsRecorderROS]: mission: %d\n", mission_);
+        printf("[AUVCtrlMsgsRecorderROS]: record path: %s\n", path_.c_str());
+    }
+
     std::stringstream trans_ss;
     trans_ss << boost::gregorian::to_simple_string(boost::gregorian::day_clock::local_day());
     std::string time_stamp = trans_ss.str();
     filename_ = filename_ + "_" + time_stamp + ".txt";
+
+    if(debug_)
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
+        printf("[AUVCtrlMsgsRecorderROS]: file name: %s\n", filename_.c_str());
+    }
 
     ctrl_msgs_recorder_ = boost::make_shared<AUVCtrlMsgsRecorder>(filename_, path_);
 
@@ -99,7 +123,11 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
     else
         model_type = 1;
     
-    ctrl_msgs_recorder_->writeMsgsHeader(model_type, mission_);
+    if(!ctrl_msgs_recorder_->writeMsgsHeader(model_type, mission_))
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
+        printf("[AUVCtrlMsgsRecorderROS]: Error in message head writing");
+    }
 }
 
 /////////////////////////
@@ -123,8 +151,7 @@ void AUVCtrlMsgsRecorderROS::startRecord()
 
 /////////////////////////
 void AUVCtrlMsgsRecorderROS::recordThread()
-{
-    ros::NodeHandle nh;
+{ ros::NodeHandle nh;
     time0_ = ros::Time::now();
 
     while(nh.ok())
@@ -151,12 +178,22 @@ void AUVCtrlMsgsRecorderROS::recordThread()
         getCtrlDeviation(depth_dev, latdist_dev, yaw_dev, pitch_dev);
 
         std::vector<double> data_arr;
+        double ptime = (ros::Time::now() - time0_).toSec();
+        data_arr.push_back(ptime);
         data_arr.push_back(x); data_arr.push_back(y); data_arr.push_back(z);
+        data_arr.push_back(-z); // depth
         data_arr.push_back(roll); data_arr.push_back(pitch); data_arr.push_back(yaw);
         data_arr.push_back(roll_v); data_arr.push_back(pitch_v); data_arr.push_back(yaw_v);
         data_arr.push_back(u); data_arr.push_back(v); data_arr.push_back(w);
         data_arr.push_back(rpm);
-        data_arr.push_back(fwd_l_fin); data_arr.push_back(fwd_r_fin); 
+        if(with_ff_)
+        {
+            data_arr.push_back(fwd_l_fin); data_arr.push_back(fwd_r_fin); 
+        }
+        else
+        {
+            data_arr.push_back(0.0); data_arr.push_back(0.0); 
+        }
         data_arr.push_back(back_l_fin); data_arr.push_back(back_r_fin); 
         data_arr.push_back(vert_up_fin); data_arr.push_back(vert_lo_fin); 
         data_arr.push_back(x_d); data_arr.push_back(y_d); data_arr.push_back(depth_d);
@@ -164,11 +201,25 @@ void AUVCtrlMsgsRecorderROS::recordThread()
         data_arr.push_back(depth_dev); data_arr.push_back(latdist_dev); 
         data_arr.push_back(yaw_dev); data_arr.push_back(pitch_dev); 
 
+        // if(debug_)
+        // {
+        //     boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
+        //     std::cout << "[AUVCtrlMsgsRecorderROS]: ";
+        //     for(int i = 0; data_arr.size(); ++i)
+        //     {
+        //         std::cout << data_arr[i] << " ";
+        //     }
+        //     std::cout << std::endl;
+        // }
+
+
         if(!ctrl_msgs_recorder_->ctrlMsgsRecord(data_arr) && debug_)
         {
             boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
             printf("[AUVCtrlMsgsRecorderROS]: Error in control message record!\n");
         }
+
+        boost::this_thread::sleep(boost::posix_time::milliseconds(1.0 / record_freq_ * 1000));
     }
 }
 
