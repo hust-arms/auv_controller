@@ -1,5 +1,5 @@
 /*                                                                                                                                               
- * Filename: AUVPIDControllerWithFF.cpp
+ * Filename: AUVPIDControllerNoFF.cpp
  * Path: auv_controller
  * Created Date: Thirsday, March 24th 2021, 18:00:00 pm
  * Author: zhao wang
@@ -11,14 +11,14 @@
 #include <eigen3/Eigen/Geometry>
 
 #include "auv_controller/Common.h"
-#include "auv_controller/AUVPIDControllerWithFF.h"
+#include "auv_controller/AUVPIDControllerNoFF.h"
 
 namespace auv_controller{
 
 /**
  * @brief Control solution
  */
-void AUVPIDControllerWithFF::controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt, bool vel_ctrl)
+void AUVPIDControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const AUVControllerInput& input, AUVControllerOutput& output, const double dt, bool vel_ctrl)
 {
     // Update kinetic parameters
     this->kinetic_.setPosition(sensor.x_, sensor.y_, sensor.z_, sensor.roll_, sensor.pitch_, sensor.yaw_);

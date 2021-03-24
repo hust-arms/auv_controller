@@ -98,7 +98,7 @@ add_library(auv_pid_controller
   src/AUVPIDController.cpp
   src/PIDController.cpp
   src/AUVPIDControllerXF.cpp
-  src/AUVPIDControllerWithFF.cpp
+  src/AUVPIDControllerNoFF.cpp
   src/AUVPIDControllerROS.cpp
 )
 
