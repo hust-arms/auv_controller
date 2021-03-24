@@ -17,6 +17,8 @@
 
 /* Test macro */
 #define SM_CTRL
+// #define DEPTH_PARAMS_FIX
+// #define LATERAL_PARAMS_FIX
 // #define THRUST_TEST
 // #define SPIRAL_TEST
 //
@@ -46,7 +48,7 @@ AUVPIDControllerROS::AUVPIDControllerROS(std::string auv_name, bool with_ff, boo
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_x", x_d_, 40.0);
-   private_nh.param("desired_y", y_d_, 0.0);
+   private_nh.param("desired_y", y_d_, 10.0);
    private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
@@ -111,6 +113,7 @@ AUVPIDControllerROS::AUVPIDControllerROS(std::string auv_name, bool with_ff, boo
        else{
            ROS_INFO("Model without front fins");
            /* Reserved for pid controller of model only with back lateral fins */
+           controller_ = new AUVPIDControllerNoFF();
        }
    }
 
@@ -958,14 +961,27 @@ void AUVPIDControllerROS::applyActuatorInput(double vertfin, double fwdfin, doub
         fins_msg.data = vertfin;
         vert_rudder_ang_pub_.publish(fins_msg);
 
+#ifdef LATERAL_PARAMS_FIX
         fin1_pub_.publish(fins_msg);
         fins_msg.data = -vertfin;
         fin3_pub_.publish(fins_msg);
+#else
+        fins_msg.data = 0.0;
+        fin1_pub_.publish(fins_msg);
+        fin3_pub_.publish(fins_msg);
+#endif
+
         // Backward fins
+#ifdef DEPTH_PARAMS_FIX
         fins_msg.data = -backfin;
         fin0_pub_.publish(fins_msg);
         fins_msg.data = backfin;
         fin2_pub_.publish(fins_msg);
+#else
+        fins_msg.data = 0.0;
+        fin0_pub_.publish(fins_msg);
+        fin2_pub_.publish(fins_msg);
+#endif
 
         back_rudder_ang_pub_.publish(fins_msg); // test
 

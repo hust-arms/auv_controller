@@ -46,7 +46,17 @@ void AUVPIDControllerNoFF::controllerRun(const AUVKineticSensor& sensor, const A
     this->deltar_ = this->latdev_controller_->positionalPID(sensor.yaw_, dt);
     printf("Ref yaw: %f, Current yaw: %f\n", ref_yaw, sensor.yaw_);
 
-    printf("Lateral rudder resolution: forward rudder: %f, backward rudder: %f\n", this->deltas_, this->deltar_);
+    if(fabs(this->deltas_) > 30 / 57.3){
+        this->deltas_ = (30 / 57.3) * sign(this->deltas_);
+    }
+    if(fabs(this->deltar_) > 30 / 57.3){
+        this->deltar_ = (30 / 57.3) * sign(this->deltar_);
+    }
+
+    output.fwd_fin_ = 0.0;
+    output.aft_fin_ = this->deltas_;
+    output.rudder_ = this->deltar_;
+    printf("Lateral rudder resolution: vertical rudder: %f, backward rudder: %f\n", this->deltar_, this->deltas_);
 
     // PID
     if(vel_ctrl)

@@ -35,8 +35,8 @@ double PIDController::positionalPID(double params_cur, double dt){
             dev_ = dev_ + pi_ * 2.0;
         }
     }
-    dev_integral_ += dev_ * dt; // integral item
-    double res = kp_ * dev_ + ki_ * dev_integral_ + kd_ * (dev_ - dev_last_) / dt; // position pid
+    dev_integral_ += dev_; // integral item
+    double res = kp_ * dev_ + ki_ * dev_integral_ + kd_ * (dev_ - dev_last_); // position pid
     dev_last_ = dev_;
     return res;
 }

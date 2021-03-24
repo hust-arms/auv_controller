@@ -53,7 +53,7 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
 
    private_nh.param("desired_x", x_d_, 40.0);
    private_nh.param("desired_y", y_d_, 10.0);
-   private_nh.param("desired_depth", depth_d_, 0.0);
+   private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
    double yaw_d = 0.0 * degree2rad;
    private_nh.param("desired_pitch", pitch_d_, pitch_d);

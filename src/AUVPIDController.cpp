@@ -80,8 +80,8 @@ void AUVPIDController::setCtrlParams(double kp, double ki, double kd, unsigned i
 void AUVPIDController::defaultInit(){
     setAUVBodyParams(228.486, 3.145, 2239.163, 2295.142, 0, 0, 0, 1.64, 0, 0.015, 2.923, 150.3313, 150.3313);
     // setCtrlParams(0.06, 0.0, 3.0, 0.06, 0.0, 3.0, 0.06, 0.0, 0.0, 0.06, 0.0, 3.0); // x type rudder
-    setCtrlParams(2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0); // x type rudder & approaching angle control
-    setLateralCtrlVar(4);
+    setCtrlParams(0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.05, 0.0, 0.0, 0.0, 0.0, 0.0); // x type rudder & approaching angle control
+    setLateralCtrlVar(1);
     setDepthCtrlVar(20.0, 2);
 
     //

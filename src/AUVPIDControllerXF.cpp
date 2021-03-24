@@ -49,7 +49,7 @@ void AUVPIDControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUV
     Eigen::Matrix<double,2,1> deltarud;
     deltarud << this->deltar_, this->deltas_;
 
-    printf("Lateral rudder resolution: forward rudder: %f, backward rudder: %f\n", this->deltas_, this->deltar_);
+    printf("Lateral rudder resolution: vertical rudder: %f, backward rudder: %f\n", this->deltar_, this->deltas_);
 
     Eigen::Matrix<double,4,2> x_rudder_map;
     // x_rudder_map << 0.25, 0.25, 0.25, -0.25, 0.25, 0.25, 0.25, -0.25;
