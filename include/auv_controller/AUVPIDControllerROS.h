@@ -36,6 +36,7 @@
 #include <armsauv_msgs/DesiredParams.h>
 
 #include "AUVPIDControllerXF.h"
+#include "AUVPIDControllerNoFF.h"
 #include "file_writer.h"
 
 namespace auv_controller{
