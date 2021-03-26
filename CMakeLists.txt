@@ -120,6 +120,11 @@ add_library(file_writer
   src/file_writer.cpp
 ) 
 
+add_library(auv_ctrlmsgs_recorder
+  src/AUVCtrlMsgsRecorder.cpp
+  src/AUVCtrlMsgsRecorderROS.cpp
+)
+
 add_library(pid_factory
   src/PIDController.cpp
 )
@@ -164,6 +169,10 @@ add_executable(auv_traj_follow_manager_node
   nodes/AUVTrajFollowMissionNode.cpp
 )
 
+add_executable(auv_ctrlmsgs_recorder_node
+  nodes/AUVCtrlMsgsRecordNode.cpp
+)
+
 add_executable(async_tcp_client_test_node
   test/async_tcp_client_test.cpp
 )
@@ -192,6 +201,8 @@ add_dependencies(auv_controller_exp_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS
 
 add_dependencies(auv_traj_follow_manager_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_ctrlmsgs_recorder_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 add_dependencies(async_tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(async_tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -211,6 +222,8 @@ target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_write
 target_link_libraries(auv_controller_exp_test_node auv_controller_exp file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_traj_follow_manager_node auv_traj_follow_manager_ros auv_controller_exp file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv_ctrlmsgs_recorder_node auv_ctrlmsgs_recorder file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(async_tcp_client_test_node async_tcp_client ${catkin_LIBRARIES})
 
