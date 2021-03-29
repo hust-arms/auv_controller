@@ -292,8 +292,8 @@ void AUVControllerExp::controlThread(){
         // Print control input
         if(debug_){
             std::lock_guard<std::mutex> guard(print_mutex_);
-            std::cout << "[AUVControllerExp]: Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
-                " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "desired u:" << u_d_ << "}" << std::endl; 
+            std::cout << "[AUVControllerExp]: Control input:{" << " desired x: " << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
+                " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << " desired u:" << u_d_ << "}" << std::endl; 
         }
 
         AUVControllerOutput output;
