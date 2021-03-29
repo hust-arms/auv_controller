@@ -31,6 +31,13 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
         ROS_ERROR("[AUVTrajFollowManagerROS]: Parse way point list false!\n");
     }
 
+    std::cout << "[AUVTrajFollowManagerROS]: Way points: ";
+    for(int i = 0; i < wp_vec_.size(); ++i)
+    {
+        std::cout << wp_vec_[i].x << "," << wp_vec_[i].y << " ";
+    }
+    std::cout << std::endl;
+
     if(debug_)
     {
         boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
@@ -101,7 +108,8 @@ void AUVTrajFollowManagerROS::start()
         // print_lock.unlock();
     }
 
-    wp_index_ = 0;
+    // wp_index_ = 0;
+    wp_index_ = 1;
     is_start_mission_ = true;
 
     manage_th_ = new boost::thread(boost::bind(&AUVTrajFollowManagerROS::trajFollowManageThread, this));
@@ -439,7 +447,8 @@ bool AUVTrajFollowManagerROS::setMissionStatus(auv_controller::SetMissionStatus:
 
         {
             boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
-            wp_index_ = 0; // reset way point index
+            // wp_index_ = 0; // reset way point index
+            wp_index_ = 1; // reset way point index
             // wp_index_lock.unlock();
         }
 
