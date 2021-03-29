@@ -34,7 +34,7 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
     std::cout << "[AUVTrajFollowManagerROS]: Way points: ";
     for(int i = 0; i < wp_vec_.size(); ++i)
     {
-        std::cout << wp_vec_[i].x << "," << wp_vec_[i].y << " ";
+        std::cout << wp_vec_[i].x << "," << wp_vec_[i].y << "," << wp_vec_[i].z << " ";
     }
     std::cout << std::endl;
 
@@ -499,11 +499,20 @@ bool AUVTrajFollowManagerROS::strToGeoPointVector(const XmlRpc::XmlRpcValue& xml
                 point.y = vvd[i][1];
                 point.z = 0.0;
                 geo_vec.push_back(point);
+                continue;
             }
-            else
+
+            if(vvd[i].size() == 3)
             {
-                return false;
+                geometry_msgs::Point point;
+                point.x = vvd[i][0];
+                point.y = vvd[i][1];
+                point.z = vvd[i][2];
+                geo_vec.push_back(point);
+                continue;
             }
+
+            return false;
         }
 
         return true;
