@@ -346,24 +346,36 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
     // get index of current followed waypoint
     int wp_index = getWayPointIndex();
 
-    if(wp_index >= 0 && wp_index < wp_vec_.size())
+    // if(wp_index >= 0 && wp_index < wp_vec_.size())
+    if(wp_index > 0 && wp_index < wp_vec_.size())
     {
-        double p1x = wp_vec_[wp_index].x; double p1y = wp_vec_[wp_index].y;
-        double p2x = wp_vec_[wp_index+1].x; double p2y = wp_vec_[wp_index+1].y;
+        // double p1x = wp_vec_[wp_index].x; double p1y = wp_vec_[wp_index].y;
+        double p1x = wp_vec_[wp_index - 1].x; double p1y = wp_vec_[wp_index - 1].y;
+        // double p2x = wp_vec_[wp_index+1].x; double p2y = wp_vec_[wp_index+1].y;
+        double p2x = wp_vec_[wp_index].x; double p2y = wp_vec_[wp_index].y;
         double line_k = std::atan2(p2y - p1y, p2x - p1x);
         
         {
             boost::unique_lock<boost::recursive_mutex> desired_info_lock(desired_info_mutex_);
             depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = line_k;
-            x_d_ = p1x;
-            y_d_ = p1y;
+            // x_d_ = p1x;
+            // y_d_ = p1y;
+            //
+            // x_d_ = p2x;
+            // y_d_ = p2y;
+
+            x_d_ = (p2x + p1x) / 2;
+            y_d_ = (p2y + p2y) / 2;
+
             // desired_info_lock.unlock();
         }
 
-        double lateral_dist = (x - x_d_) * sin(yaw_d_) - (y - y_d_) * cos(yaw_d_); // In NED frame
+        // double lateral_dist = (x - x_d_) * sin(yaw_d_) - (y - y_d_) * cos(yaw_d_); // In NED frame
+        double dist = sqrt(pow(x - p2x, 2) + pow(y - p2y, 2));
 
         // check if vehicle access the field of way point
-        if(abs(lateral_dist) <= thre_)
+        // if(abs(lateral_dist) <= thre_)
+        if(abs(dist) <= thre_)
         {
             {
                 boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
