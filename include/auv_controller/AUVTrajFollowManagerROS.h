@@ -250,7 +250,6 @@ private:
         w_ = msg->velocity.z;
     }
 
-
 private:
     /* ros components */
     ros::Publisher auv_control_info_pub_;

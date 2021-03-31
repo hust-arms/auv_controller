@@ -10,7 +10,8 @@
     <node name="auv_ctrlmsgs_recorder_node" pkg="auv_controller" type="auv_ctrlmsgs_recorder_node" 
         respawn="false" output="screen" args="$(arg auv_name) $(arg with_ff) $(arg x_type) $(arg debug)">
         <rosparam param="filename">control_record</rosparam>
-        <rosparam param="path">../record/</rosparam>
+        <!--<rosparam param="path">../record/</rosparam>-->
+        <rosparam param="path">/home/wz9562/Documents/catkin_arms/src/auv_controller/record/</rosparam>
         <rosparam param="frequency">1</rosparam>
     </node>
 </launch>

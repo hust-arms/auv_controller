@@ -42,7 +42,6 @@ AUVTrajFollowManagerROS::AUVTrajFollowManagerROS(std::string auv_name, bool with
     {
         boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
         printf("[AUVTrajFollowManagerROS]: Initialize manager components!\n");
-        // print_lock.unlock();
     }
 
     auv_control_info_pub_ = nh.advertise<auv_control_msgs::AUVCtrlInfo>(auv_name+"/control_info", 1); 
@@ -105,7 +104,6 @@ void AUVTrajFollowManagerROS::start()
     {
         boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
         printf("[AUVTrajFollowManagerROS]: Traj follow manage thread has been created!\n");
-        // print_lock.unlock();
     }
 
     // wp_index_ = 0;
@@ -135,9 +133,13 @@ void AUVTrajFollowManagerROS::publishThread()
 {
     ros::NodeHandle nh;
 
-    boost::unique_lock<boost::recursive_mutex> manage_lock(manage_mutex_);
-    manage_cond_.notify_one(); // wake manage thread
-    manage_mutex_.unlock();
+    {
+        boost::unique_lock<boost::recursive_mutex> manage_lock(manage_mutex_);
+        manage_cond_.notify_one(); // wake manage thread
+    }
+    // boost::unique_lock<boost::recursive_mutex> manage_lock(manage_mutex_);
+    // manage_cond_.notify_one(); // wake manage thread
+    // manage_mutex_.unlock();
 
     while(nh.ok())
     {
@@ -181,6 +183,7 @@ void AUVTrajFollowManagerROS::publishThread()
             boost::this_thread::sleep(boost::posix_time::milliseconds(manage_dt_*1000));
         }
     }
+    controller_ptr_->stopControl();
 }
 
 //////////////////////////////////
@@ -319,7 +322,6 @@ void AUVTrajFollowManagerROS::trajFollowManageThread()
         {
             boost::unique_lock<boost::recursive_mutex> print_lock(print_mutex_);
             printf("[AUVTrajFollowManagerROS]: Vehicle accesses end of point, finish following!\n");
-            // print_lock.unlock();
         }
 
         lock.lock();
@@ -366,8 +368,6 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
 
             x_d_ = (p2x + p1x) / 2;
             y_d_ = (p2y + p2y) / 2;
-
-            // desired_info_lock.unlock();
         }
 
         // double lateral_dist = (x - x_d_) * sin(yaw_d_) - (y - y_d_) * cos(yaw_d_); // In NED frame
@@ -380,7 +380,6 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
             {
                 boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
                 ++wp_index_;
-                // wp_index_lock.unlock();
             }
         }
     }  
@@ -406,13 +405,11 @@ bool AUVTrajFollowManagerROS::isAccessEndPoint()
             {
                 boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
                 wp_index_ = -1;
-                // wp_index_lock.unlock();
             }
 
             {
                 boost::unique_lock<boost::recursive_mutex> mission_flag_lock(mission_flag_mutex_);
                 is_start_mission_ = false;
-                // mission_flag_lock.unlock();
             }
 
             return true;
@@ -437,13 +434,11 @@ bool AUVTrajFollowManagerROS::setMissionStatus(auv_controller::SetMissionStatus:
             boost::unique_lock<boost::recursive_mutex> mission_flag_lock(mission_flag_mutex_);
             is_start_mission_ = false;
         }
-        // mission_flag_lock.unlock();
 
         {
             boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
             wp_index_ = -1; // reset way point index
         }
-        // wp_index_lock.unlock();
 
         res.FeedbackMsg = "Set mission status as 'stop' successfully!\n";
         return true;
@@ -455,13 +450,11 @@ bool AUVTrajFollowManagerROS::setMissionStatus(auv_controller::SetMissionStatus:
             boost::unique_lock<boost::recursive_mutex> mission_flag_lock(mission_flag_mutex_);
             is_start_mission_ = true;
         }
-        // mission_flag_lock.unlock();
 
         {
             boost::unique_lock<boost::recursive_mutex> wp_index_lock(wp_index_mutex_);
             // wp_index_ = 0; // reset way point index
             wp_index_ = 1; // reset way point index
-            // wp_index_lock.unlock();
         }
 
         res.FeedbackMsg = "Set mission status as 'start' successfully!\n";

@@ -61,6 +61,11 @@ public:
     void startControl();
 
     /**
+     * @brief Start controll
+     */
+    void stopControl();
+
+    /**
      * @brief Get control var
      */
     void getCtrlVar(double& fwdfin, double& backfin, double& vertfin, double& thruster);
@@ -122,6 +127,12 @@ public:
     // void getCtrlInfo(double& x_d, double& y_d, double& depth_d, double& yaw_d, double& pitch_d, double& u_d);
 
 private:
+    bool isCtrlStop()
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(stop_ctrl_mutex_);
+        return stop_;
+    }
+
     /**
      * @brief Control thread
      */
@@ -565,6 +576,8 @@ private:
     //boost::recursive_mutex em_pitch_check_mutex_;
     //boost::recursive_mutex em_yaw_check_mutex_;
     boost::recursive_mutex em_event_mutex_;
+
+    boost::recursive_mutex stop_ctrl_mutex_;
 
     /* Source lock for status*/
     std::mutex posegt_mutex_;

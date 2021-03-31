@@ -194,6 +194,13 @@ void AUVControllerExp::startControl(){
 }
 
 /////////////////////////////////////
+void AUVControllerExp::stopControl()
+{
+    boost::unique_lock<boost::recursive_mutex> stop_ctrl_lock(stop_ctrl_mutex_);
+    stop_ = true;
+}
+
+/////////////////////////////////////
 void AUVControllerExp::getCtrlVar(double& fwdfin, double& backfin, double& vertfin, double& thruster)
 {
     std::lock_guard<std::mutex> guard(ctrl_var_mutex_);
@@ -353,7 +360,7 @@ void AUVControllerExp::controlThread(){
 
 /////////////////////////////////////
 void AUVControllerExp::velControlThread(){
-    while(!stop_){
+    while(!isCtrlStop()){
         if(isStable()){
             if(!is_ctrl_vel_ && !is_wait_stable_){
                 // if stable and flag is not changed, only update stable time.
@@ -445,7 +452,7 @@ void AUVControllerExp::publishThread(){
     ctrl_cond_.notify_one();
     ctrl_lock.unlock();
 
-    while(!stop_)
+    while(!isCtrlStop())
     {
         double vertfin, fwdfin, backfin, rpm;
         double upper_p, upper_s, lower_p, lower_s;
@@ -571,7 +578,7 @@ void AUVControllerExp::emDepthCheckThread()
     // bool wait_for_wake = true;
     int check_cnt = 0;
 
-    while(!stop_)
+    while(!isCtrlStop())
     {
         // boost::unique_lock<boost::recursive_mutex> lock(em_depth_check_mutex_);
         // Wait for wake
@@ -667,7 +674,7 @@ void AUVControllerExp::emRollCheckThread()
     // bool wait_for_wake = true;
     int check_cnt = 0;
 
-    while(!stop_)
+    while(!isCtrlStop())
     {
         // boost::unique_lock<boost::recursive_mutex> lock(em_roll_check_mutex_);
         // // Wait for wake
@@ -758,7 +765,7 @@ void AUVControllerExp::emPitchCheckThread()
     // bool wait_for_wake = true;
     int check_cnt = 0;
 
-    while(!stop_)
+    while(!isCtrlStop())
     {
         // boost::unique_lock<boost::recursive_mutex> lock(em_pitch_check_mutex_);
         // Wait for wake
@@ -849,7 +856,7 @@ void AUVControllerExp::emYawCheckThread()
     double prev_yaw = getYaw();
     double cur_yaw = prev_yaw;
 
-    while(!stop_)
+    while(!isCtrlStop())
     {
         // boost::unique_lock<boost::recursive_mutex> lock(em_yaw_check_mutex_);
         // // Wait for wake
