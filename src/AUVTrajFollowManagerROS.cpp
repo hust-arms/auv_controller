@@ -359,7 +359,10 @@ void AUVTrajFollowManagerROS::updateCtrlInfo()
         
         {
             boost::unique_lock<boost::recursive_mutex> desired_info_lock(desired_info_mutex_);
-            depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = line_k;
+            // depth_d_ = 0.0; 
+            depth_d_ = abs(wp_vec_[wp_index].z); 
+            pitch_d_ = 0.0; 
+            yaw_d_ = line_k;
             // x_d_ = p1x;
             // y_d_ = p1y;
             //
