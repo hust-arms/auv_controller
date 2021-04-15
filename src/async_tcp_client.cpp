@@ -153,7 +153,7 @@ namespace tcp_client{
         return;
     
       // Start an asynchronous operation to send a heartbeat message.
-      boost::asio::async_write(socket_, boost::asio::buffer("\n", 1),
+      boost::asio::async_write(socket_, boost::asio::buffer("test", 30),
           boost::bind(&AsyncTCPClient::handle_write, this, _1));
     }
 	
@@ -168,7 +168,7 @@ namespace tcp_client{
         std::cout << "In write handle" << std::endl;
 
         // Wait 10 seconds before sending the next heartbeat.
-        heartbeat_timer_.expires_from_now(boost::posix_time::seconds(10));
+        heartbeat_timer_.expires_from_now(boost::posix_time::seconds(1));
         heartbeat_timer_.async_wait(boost::bind(&AsyncTCPClient::start_write, this));
       }
       else
