@@ -91,6 +91,13 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
             return false;
         }
         break;
+    case 6: 
+        mission = "mission: Outline Control";
+        if(!fw_ptr_->writeData(mission))
+        {
+            return false;
+        }
+        break;
     }
 
     return true;
