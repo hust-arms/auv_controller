@@ -8,6 +8,7 @@
  */
 
 #include "auv_controller/AUVCtrlMsgsRecorderROS.h"
+#include "auv_control_msgs/AUVOutlineStatus.h"
 
 namespace auv_controller
 {
@@ -40,6 +41,9 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
                         boost::bind(&AUVCtrlMsgsRecorderROS::dvlCb, this, _1));
     rotor_speed_sub_ = nh.subscribe<uuv_gazebo_ros_plugins_msgs::FloatStamped>(auv_name_ + "/thruster/0/output", 1, 
                         boost::bind(&AUVCtrlMsgsRecorderROS::rotorSpeedCb, this, _1));
+
+    outline_status_sub_ = nh.subscribe<auv_control_msgs::AUVOutlineStatus>(auv_name_ + "/outline_status", 1, 
+                        boost::bind(&AUVCtrlMsgsRecorderROS::outlineStatusCb, this, _1));
 
     std::string fwd_l_fin_topic, fwd_r_fin_topic, back_l_fin_topic, back_r_fin_topic, 
         vert_up_fin_topic, vert_lo_fin_topic;
@@ -151,7 +155,8 @@ void AUVCtrlMsgsRecorderROS::startRecord()
 
 /////////////////////////
 void AUVCtrlMsgsRecorderROS::recordThread()
-{ ros::NodeHandle nh;
+{ 
+    ros::NodeHandle nh;
     time0_ = ros::Time::now();
 
     while(nh.ok())
@@ -417,6 +422,18 @@ void AUVCtrlMsgsRecorderROS::getCtrlDeviation(double& depthdev, double& latdistd
     latdistdev = latdist_dev_;
     yawdev = yaw_dev_;
     pitchdev = pitch_dev_;
+}
+
+/////////////////////////
+void AUVCtrlMsgsRecorderROS::outlineStatusCb(const auv_control_msgs::AUVOutlineStatus::ConstPtr& msg)
+{
+    boost::unique_lock<boost::recursive_mutex> lock(outline_status_mutex_);
+    ol_x_ = msg->x; ol_y_ = msg->y; ol_z_ = msg->z;
+    ol_roll_ = msg->roll; ol_pitch_ = msg->pitch; ol_yaw_ = msg->yaw;
+    ol_u_ = msg->u; ol_v_ = msg->v; 
+    ol_p_ = msg->p; ol_q_ = msg->q; ol_r_ = msg->r;
+
+    ol_time_ = msg->ts;
 }
 
 }; // ns

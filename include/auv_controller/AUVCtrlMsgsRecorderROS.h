@@ -27,6 +27,7 @@
 
 #include "auv_control_msgs/AUVCtrlInfo.h"
 #include "auv_control_msgs/AUVCtrlDeviation.h"
+#include "auv_control_msgs/AUVOutlineStatus.h"
 
 #include <boost/thread.hpp>
 
@@ -54,6 +55,11 @@ private:
      * @msg AUV odometry
      */ 
     void auvOdometryCb(const nav_msgs::Odometry::ConstPtr& msg);
+
+    /**
+     * @brief Receive AUV outline params
+     */ 
+    void outlineStatusCb(const auv_control_msgs::AUVOutlineStatus::ConstPtr& msg);
 
     /**
      * @brief Return pose
@@ -212,6 +218,12 @@ private:
     double rpm_;
     double latdist_dev_, depth_dev_, yaw_dev_, pitch_dev_;
 
+    double ol_x_, ol_y_, ol_z_;
+    double ol_roll_, ol_pitch_, ol_yaw_;
+    double ol_u_, ol_v_, ol_w_;
+    double ol_p_, ol_q_, ol_r_;
+    int ol_time_;
+
     /* ros components */
     ros::Subscriber auv_odom_sub_;
     ros::Subscriber imu_sub_;
@@ -225,6 +237,8 @@ private:
     ros::Subscriber vert_lo_fin_sub_;
     ros::Subscriber auv_ctrl_info_sub_;
     ros::Subscriber auv_ctrl_dev_sub_;
+
+    ros::Subscriber outline_status_sub_;
 
     /* resource mutex */
     boost::recursive_mutex print_mutex_;
@@ -241,6 +255,7 @@ private:
     boost::recursive_mutex vert_lo_fin_mutex_;
     boost::recursive_mutex auv_ctrl_info_mutex_;
     boost::recursive_mutex auv_ctrl_dev_mutex_;
+    boost::recursive_mutex outline_status_mutex_;
 
 }; // class AUVCtrlMsgsRecorderROS
 }; // ns
