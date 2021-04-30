@@ -331,7 +331,6 @@ void AUVPIDControllerROS::controlThread(){
 
         boost::this_thread::sleep(boost::posix_time::milliseconds(1000 * ctrl_dt_));
 
-
         // if(ctrl_dt_ > 0.0){
         //     ros::Duration sleep_time = (ctrl_start_t + ros::Duration(ctrl_dt_)) - ros::Time::now();
         //     if(sleep_time > ros::Duration(0.0)){

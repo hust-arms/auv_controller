@@ -189,6 +189,10 @@ add_executable(tcp_client_test_node
   test/tcp_client_test.cpp
 )
 
+# add_executable(auv_db_parser_test_node
+#   test/AUVDBParser.cpp
+# )
+
 add_dependencies(reset_control_state_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -211,6 +215,8 @@ add_dependencies(tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 
 add_dependencies(tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+# add_dependencies(auv_db_parser_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(reset_control_state_node ${PROJECT_NAME} ${catkin_LIBRARIES})
 
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
@@ -232,3 +238,5 @@ target_link_libraries(async_tcp_server_test_node async_tcp_server ${catkin_LIBRA
 target_link_libraries(tcp_server_test_node tcp_server ${catkin_LIBRARIES})
 
 target_link_libraries(tcp_client_test_node tcp_client ${catkin_LIBRARIES})
+
+# target_link_libraries(auv_db_parser_test_node ${catkin_LIBRARIES})

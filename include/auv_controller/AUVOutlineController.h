@@ -76,12 +76,13 @@ public:
 
         if(db_ret != SQLITE_OK)
         {
-            fprintf(stderr, name_ + "Open database failed: %s\n", sqlite3_errmsg(db_));
+            std::string msg = name_ + "Open database failed: %s\n";
+            fprintf(stderr, msg.c_str(), sqlite3_errmsg(db_));
             exit(1);
         }
         else
         {
-            printf(name_ + "Open database successful: %s\n");
+            printf("[AUVDBParser]: Open database successful: %s\n", db_filename.c_str());
         }
     }
 
@@ -111,7 +112,8 @@ public:
         if(db_ret != SQLITE_OK)
         {
             sqlite3_close(db_);
-            fprintf(stderr, name_ + "Open database failed: %s\n", sqlite3_errmsg(db_));
+            std::string msg = name_ + "Open database failed: %s\n";
+            fprintf(stderr, msg.c_str(), sqlite3_errmsg(db_));
             return false;
         }
 
@@ -133,19 +135,37 @@ public:
                     AUV_ctrl_info.fin4_ = atof(db_result[row * ncol + 38]);
                     AUV_ctrl_info.fin5_ = atof(db_result[row * ncol + 36]);
                     
-                    ctrl_info_list_.push_back();
+                    ctrl_info_list_.push_back(AUV_ctrl_info);
                 }
 
                 // AUV without front fins in crosshead type
-                if(flag == AUVType::COMMON)
+                if(type == AUVType::COMMON)
                 {
-
+                    AUV_ctrl_info.ts_ = 0.0;
+                    AUV_ctrl_info.rpm_ = 0.0;
+                    AUV_ctrl_info.fin0_ = 0.0;
+                    AUV_ctrl_info.fin1_ = 0.0;
+                    AUV_ctrl_info.fin2_ = 0.0;
+                    AUV_ctrl_info.fin3_ = 0.0;
+                    AUV_ctrl_info.fin4_ = 0.0;
+                    AUV_ctrl_info.fin5_ = 0.0;
+                    
+                    ctrl_info_list_.push_back(AUV_ctrl_info);
                 }
 
                 // AUV without front fins in X type
-                if(flag == AUVType::X_TYPE)
+                if(type == AUVType::X_TYPE)
                 {
-
+                    AUV_ctrl_info.ts_ = 0.0;
+                    AUV_ctrl_info.rpm_ = 0.0;
+                    AUV_ctrl_info.fin0_ = 0.0;
+                    AUV_ctrl_info.fin1_ = 0.0;
+                    AUV_ctrl_info.fin2_ = 0.0;
+                    AUV_ctrl_info.fin3_ = 0.0;
+                    AUV_ctrl_info.fin4_ = 0.0;
+                    AUV_ctrl_info.fin5_ = 0.0;
+                    
+                    ctrl_info_list_.push_back(AUV_ctrl_info);
                 }
             }
         }
@@ -178,7 +198,8 @@ public:
     /**
      * @brief Constructor
      */
-    AUVOutlineController(const std::string& db_filename, bool with_ff, bool x_type)
+    AUVOutlineController(const std::string& db_filename, bool with_ff, bool x_type) : 
+        with_ff_(with_ff), x_type_(x_type)
     {
         // create database parser
         parser_ = boost::shared_ptr<AUVDBParser>(new AUVDBParser(db_filename));
@@ -189,23 +210,24 @@ public:
      */
     bool parse()
     {
-        if(with_ff)
+        if(with_ff_)
         {
             return parser_->parse(AUVType::WITH_FRONTFINS);
         }
 
-        if(x_type)
+        if(x_type_)
         {
-            return parse_->parse(AUVType::X_TYPE);
+            return parser_->parse(AUVType::X_TYPE);
         }
 
-        return parse_->parse(AUVType::COMMON);
+        return parser_->parse(AUVType::COMMON);
     }
 
     ~AUVOutlineController() {}
 
 private:
     parser_ptr parser_;
+    bool with_ff_, x_type_;
 }; // AUVOutlineController
 
 }; //ns 

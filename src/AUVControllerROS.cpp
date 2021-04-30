@@ -16,9 +16,8 @@
 #include "auv_controller/AUVControllerROS.h"
 
 /* Common test macro */
-#define SM_CTRL
-// #define THRUST_TEST
-// #define SPIRAL_TEST
+// #define SM_CTRL
+#define THRUST_TEST // #define SPIRAL_TEST
 // #define XRUDDER_TEST
 
 /* Emergency test macro*/
@@ -52,10 +51,10 @@ AUVControllerROS::AUVControllerROS(std::string auv_name, bool with_ff, bool x_ty
    private_nh.param("stable_wait_time", stable_wait_t_, 90.0);
 
    private_nh.param("desired_x", x_d_, 40.0);
-   private_nh.param("desired_y", y_d_, 10.0);
+   private_nh.param("desired_y", y_d_, -10.0);
    private_nh.param("desired_depth", depth_d_, 10.0);
    double pitch_d = 0.0 * degree2rad;
-   double yaw_d = 0.0 * degree2rad;
+   double yaw_d = -30.0 * degree2rad;
    private_nh.param("desired_pitch", pitch_d_, pitch_d);
    private_nh.param("desired_yaw", yaw_d_, yaw_d);
 
@@ -289,7 +288,7 @@ void AUVControllerROS::controlThread(){
         // Print control input
         if(debug_){
             std::lock_guard<std::mutex> guard(print_mutex_);
-            std::cout << "Control input:{" << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
+            std::cout << "Control input:{" << " desired x:" << x_d_ << " desired y:" << y_d_ << " desired depth:" << depth_d_ <<
                 " desired pitch:" << pitch_d_ << " desired yaw:" << yaw_d_ << "desired u:" << u_d_ << "}" << std::endl; 
         }
 
@@ -975,6 +974,7 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
         fins_msg.data = vertfin;
         vert_rudder_ang_pub_.publish(fins_msg); // test
 
+        // fin3: upper stern fin5: lower stern 
         fin3_pub_.publish(fins_msg);
         fins_msg.data = -vertfin;
         fin5_pub_.publish(fins_msg);
@@ -982,10 +982,12 @@ void AUVControllerROS::applyActuatorInput(double vertfin, double fwdfin, double 
         fins_msg.data = fwdfin;
         front_rudder_ang_pub_.publish(fins_msg); // test
 
+        // fin0: right bow fin1: left bow 
         fin0_pub_.publish(fins_msg);
         fins_msg.data = -fwdfin;
         fin1_pub_.publish(fins_msg);
         // Backward fins
+        // fin2: left stern fin4: right stern 
         fins_msg.data = -backfin;
         fin2_pub_.publish(fins_msg);
         fins_msg.data = backfin;

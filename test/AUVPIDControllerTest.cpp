@@ -38,7 +38,8 @@ int main(int argc, char** argv)
         debug = true;
     }
 
-    std::string auv_ns = "auv324";
+    // std::string auv_ns = "auv324";
+    std::string auv_ns = "armsauv";
     auv_controller::AUVPIDControllerROS auv_ctrl(auv_ns, with_ff, x_type, debug);
 
     auv_ctrl.startControl();

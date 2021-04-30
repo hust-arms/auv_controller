@@ -9,7 +9,7 @@
     <node name="auv_traj_follow_manager_node" pkg="auv_controller" type="auv_traj_follow_manager_node" 
         respawn="false" output="screen" args="$(arg namespace) $(arg with_ff) $(arg x_type) $(arg debug)">
         <!--<rosparam param="target_waypoint">"[[40.0, 10.0], [100.0, 10.0], [150.0, 30.0]]"</rosparam>-->
-        <rosparam param="target_waypoint">"[[40.0, 10.0, 5.0], [100.0, 10.0, 5.0], [150.0, 30.0, 5.0]]"</rosparam>
+        <rosparam param="target_waypoint">"[[40.0, 10.0, 5.0], [100.0, 10.0, 5.0], [150.0, 30.0, 5.0], [400, -30.0, 5.0]]"</rosparam>
         <rosparam param="desired_x_linear_velocity">1.5432</rosparam>
         <rosparam param="traj_follow_manage_period">0.2</rosparam>
         <rosparam param="threshold">1.0</rosparam>
