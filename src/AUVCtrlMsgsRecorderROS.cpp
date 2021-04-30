@@ -207,8 +207,8 @@ void AUVCtrlMsgsRecorderROS::recordThread()
             int ts;
             double ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw;
             double ol_u, ol_v, ol_p, ol_q, ol_r;
-            ctrl_msgs_recorder_->getOutlineStatus(ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw,
-                                                  ol_u, ol_v, ol_p, ol_q, ol_r);
+            getOutlineStatus(ts, ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw,
+                             ol_u, ol_v, ol_p, ol_q, ol_r);
             data_arr.push_back(ts);
             data_arr.push_back(ol_x); data_arr.push_back(ol_y); data_arr.push_back(ol_z);
             data_arr.push_back(ol_roll); data_arr.push_back(ol_pitch); data_arr.push_back(ol_yaw);
