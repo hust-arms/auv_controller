@@ -19,6 +19,8 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
     std::string date = boost::posix_time::to_simple_string(time_stamp);
     fw_ptr_->writeData("Record time: " + date);
 
+    is_record_ot_params_ = false;
+
     // Write model type & mission type
     std::string model;
     switch(model_type)
@@ -95,6 +97,7 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
         mission = "mission: Outline Control";
         if(!fw_ptr_->writeData(mission))
         {
+            is_record_ot_params_ = true;
             return false;
         }
         break;

@@ -58,6 +58,13 @@ public:
      */
     bool ctrlMsgsRecord(const std::vector<double>& data_arr);
 
+    /**
+     */
+    bool isRecordOutlineParams()const
+    {
+        return is_record_ot_params_;
+    }
+
 private:
     /**
      * @brief Serialize control messages
@@ -68,6 +75,8 @@ private:
     FileWriterPtr fw_ptr_;
 
     std::string filename_, path_;
+
+    bool is_record_ot_params_;
 
     const unsigned int ctrl_msgs_num_ = 31;
 
