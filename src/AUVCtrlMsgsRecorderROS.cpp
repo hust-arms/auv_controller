@@ -201,10 +201,27 @@ void AUVCtrlMsgsRecorderROS::recordThread()
         }
         data_arr.push_back(back_l_fin); data_arr.push_back(back_r_fin); 
         data_arr.push_back(vert_up_fin); data_arr.push_back(vert_lo_fin); 
-        data_arr.push_back(x_d); data_arr.push_back(y_d); data_arr.push_back(depth_d);
-        data_arr.push_back(pitch_d); data_arr.push_back(yaw_d); data_arr.push_back(u_d);
-        data_arr.push_back(depth_dev); data_arr.push_back(latdist_dev); 
-        data_arr.push_back(yaw_dev); data_arr.push_back(pitch_dev); 
+
+        if(ctrl_msgs_recorder_->isRecordOutlineParams())
+        {
+            int ts;
+            double ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw;
+            double ol_u, ol_v, ol_p, ol_q, ol_r;
+            ctrl_msgs_recorder_->getOutlineStatus(ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw,
+                                                  ol_u, ol_v, ol_p, ol_q, ol_r);
+            data_arr.push_back(ts);
+            data_arr.push_back(ol_x); data_arr.push_back(ol_y); data_arr.push_back(ol_z);
+            data_arr.push_back(ol_roll); data_arr.push_back(ol_pitch); data_arr.push_back(ol_yaw);
+            data_arr.push_back(ol_u); data_arr.push_back(ol_v); 
+            data_arr.push_back(ol_p); data_arr.push_back(ol_q); data_arr.push_back(ol_r);
+        }
+        else
+        {
+            data_arr.push_back(x_d); data_arr.push_back(y_d); data_arr.push_back(depth_d);
+            data_arr.push_back(pitch_d); data_arr.push_back(yaw_d); data_arr.push_back(u_d);
+            data_arr.push_back(depth_dev); data_arr.push_back(latdist_dev); 
+            data_arr.push_back(yaw_dev); data_arr.push_back(pitch_dev); 
+        }
 
         // if(debug_)
         // {
@@ -432,7 +449,6 @@ void AUVCtrlMsgsRecorderROS::outlineStatusCb(const auv_control_msgs::AUVOutlineS
     ol_roll_ = msg->roll; ol_pitch_ = msg->pitch; ol_yaw_ = msg->yaw;
     ol_u_ = msg->u; ol_v_ = msg->v; 
     ol_p_ = msg->p; ol_q_ = msg->q; ol_r_ = msg->r;
-
     ol_time_ = msg->ts;
 }
 

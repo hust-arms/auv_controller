@@ -62,6 +62,20 @@ private:
     void outlineStatusCb(const auv_control_msgs::AUVOutlineStatus::ConstPtr& msg);
 
     /**
+     * @brief  
+     */
+    void getOutlineStatus(int& ts, double& x, double& y, double& z, 
+                          double& roll, double& pitch, double& yaw, 
+                          double& u, double& v, double& p, double& q, double& r)
+    {
+        boost::unique_lock<boost::recursive_mutex> lock(outline_status_mutex_);
+        ts = ol_time_;
+        x = ol_x_; y = ol_y_; z = ol_z_;
+        roll = ol_roll_; pitch = ol_pitch_; yaw = ol_yaw_;
+        u = ol_u_; v = ol_v_; p = ol_p_; q = ol_q_; r = ol_r_;
+    }
+
+    /**
      * @brief Return pose
      */
     void getPosition(double& x, double& y, double& z); 
