@@ -108,7 +108,8 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
     std::stringstream trans_ss;
     trans_ss << boost::gregorian::to_simple_string(boost::gregorian::day_clock::local_day());
     std::string time_stamp = trans_ss.str();
-    filename_ = filename_ + "_" + time_stamp + ".txt";
+    // filename_ = filename_ + "_" + time_stamp + ".txt";
+    filename_ = filename_ + "_" + time_stamp + ".csv";
 
     if(debug_)
     {
