@@ -187,9 +187,9 @@ void AUVCtrlMsgsRecorderROS::recordThread()
         data_arr.push_back(ptime);
         data_arr.push_back(x); data_arr.push_back(y); data_arr.push_back(z);
         data_arr.push_back(-z); // depth
+        data_arr.push_back(u); data_arr.push_back(v); data_arr.push_back(w);
         data_arr.push_back(roll); data_arr.push_back(pitch); data_arr.push_back(yaw);
         data_arr.push_back(roll_v); data_arr.push_back(pitch_v); data_arr.push_back(yaw_v);
-        data_arr.push_back(u); data_arr.push_back(v); data_arr.push_back(w);
         data_arr.push_back(rpm);
         if(with_ff_)
         {
