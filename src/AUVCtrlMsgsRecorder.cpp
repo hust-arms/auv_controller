@@ -103,6 +103,22 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
         break;
     }
 
+    // parameter header
+    std::string header;
+    if(mission_type != 6)
+    {
+        header = "time x y z depth u v w roll pitch yaw p q r rpm l_bow r_bow l_stern r_stern up_stern lo_stern x_d y_d depth_d pitch_d yaw_d u_d depth_dev latdist_dev yaw_dev pitch_dev";
+    }
+    else
+    {
+        header = "time x y z depth u v w roll pitch yaw p q r rpm l_bow r_bow l_stern r_stern up_stern lo_stern ts ol_x ol_y ol_z ol_roll ol_pitch ol_yaw ol_u ol_v ol_p ol_q ol_r";
+    }
+
+    if(!fw_ptr_->writeData(header))
+    {
+        return false;
+    }
+
     return true;
 }
 
