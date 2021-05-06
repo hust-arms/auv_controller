@@ -204,6 +204,12 @@ void AUVCtrlMsgsRecorderROS::recordThread()
 
         if(ctrl_msgs_recorder_->isRecordOutlineParams())
         {
+            if(debug_)
+            {
+                boost::unique_lock<boost::recursive_mutex> lock(print_mutex_);
+                printf("[AUVCtrlMsgsRecorderROS]: record outline parameters\n");
+            }
+
             int ts;
             double ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw;
             double ol_u, ol_v, ol_p, ol_q, ol_r;
