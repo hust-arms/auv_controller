@@ -16,6 +16,22 @@ namespace auv_controller
 AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS(std::string auv_name, bool with_ff, bool x_type, bool debug, int mission) : 
     auv_name_(auv_name), with_ff_(with_ff), x_type_(x_type), debug_(debug), mission_(mission)
 {
+    // initialize parameters
+    x_ = 0.0; y_ = 0.0; z_ = 0.0;
+    depth_ = 0.0;
+    u_ = 0.0; v_ = 0.0; w_ = 0.0;
+    roll_ = 0.0; pitch_ = 0.0; yaw_ = 0.0;
+    roll_vel_ = 0.0; pitch_vel_ = 0.0; yaw_vel_ = 0.0;
+    x_d_ = 0.0; y_d_ = 0.0; depth_d_ = 0.0; pitch_d_ = 0.0; yaw_d_ = 0.0; u_d_ = 0.0;
+    fwd_l_fin_ = 0.0; fwd_r_fin_ = 0.0; back_l_fin_ = 0.0; back_r_fin_ = 0.0; vert_up_fin_ = 0.0; vert_lo_fin_ = 0.0;
+    rpm_ = 0.0;
+    latdist_dev_ = 0.0; depth_dev_ = 0.0; yaw_dev_ = 0.0; pitch_dev_ = 0.0;
+    ol_x_ = 0.0; ol_y_ = 0.0; ol_z_ = 0.0;
+    ol_roll_ = 0.0; ol_pitch_ = 0.0; ol_yaw_ = 0.0;
+    ol_u_ = 0.0; ol_v_ = 0.0; ol_w_ = 0.0;
+    ol_p_ = 0.0; ol_q_ = 0.0; ol_r_ = 0.0;
+    ol_time_ = 0;
+
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
 
@@ -27,7 +43,7 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS(std::string auv_name, bool with_f
     // private_nh.param("auv_name", auv_name_, std::string("auv324"));
     private_nh.param("file_name", filename_, std::string("control_record"));
     private_nh.param("path", path_, std::string("../record/"));
-    private_nh.param("frequency", record_freq_, 1);
+    private_nh.param("frequency", record_freq_, 10);
 
     auv_odom_sub_ = nh.subscribe<nav_msgs::Odometry>(auv_name_ + "/pose_gt", 1, 
                         boost::bind(&AUVCtrlMsgsRecorderROS::auvOdometryCb, this, _1));
@@ -212,13 +228,16 @@ void AUVCtrlMsgsRecorderROS::recordThread()
             double ol_u, ol_v, ol_p, ol_q, ol_r;
             getOutlineStatus(ts, ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw,
                              ol_u, ol_v, ol_p, ol_q, ol_r);
+            // printf("<AUVCtrlMsgsRecorderROS>: getOutlineStatus: x:%f y:%f z:%f roll:%f pitch:%f yaw:%f\n", 
+            //        ol_x, ol_y, ol_z, ol_roll, ol_pitch, ol_yaw);
+
             data_arr.push_back(ts);
             data_arr.push_back(ol_x); data_arr.push_back(ol_y); data_arr.push_back(ol_z);
             data_arr.push_back(ol_roll); data_arr.push_back(ol_pitch); data_arr.push_back(ol_yaw);
             data_arr.push_back(ol_u); data_arr.push_back(ol_v); 
             data_arr.push_back(ol_p); data_arr.push_back(ol_q); data_arr.push_back(ol_r);
         }
-        else
+       else
         {
             data_arr.push_back(x_d); data_arr.push_back(y_d); data_arr.push_back(depth_d);
             data_arr.push_back(pitch_d); data_arr.push_back(yaw_d); data_arr.push_back(u_d);
@@ -453,6 +472,8 @@ void AUVCtrlMsgsRecorderROS::outlineStatusCb(const auv_control_msgs::AUVOutlineS
     ol_u_ = msg->u; ol_v_ = msg->v; 
     ol_p_ = msg->p; ol_q_ = msg->q; ol_r_ = msg->r;
     ol_time_ = msg->ts;
+    // printf("<AUVCtrlMsgsRecorderROS>: outlineStatusCb: x:%f y:%f z:%f roll:%f pitch:%f yaw:%f\n", 
+    //        ol_x_, ol_y_, ol_z_, ol_roll_, ol_pitch_, ol_yaw_);
 }
 
 }; // ns
