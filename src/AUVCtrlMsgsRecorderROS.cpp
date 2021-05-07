@@ -13,22 +13,18 @@
 namespace auv_controller
 {
 /////////////////////////
-AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS()
+AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS(std::string auv_name, bool with_ff, bool x_type, bool debug, int mission) : 
+    auv_name_(auv_name), with_ff_(with_ff), x_type_(x_type), debug_(debug), mission_(mission)
 {
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
 
     // Params configuration
-    // private_nh.getParam("mission", mission_);
-    private_nh.param("mission", mission_, 3);
-    // private_nh.getParam("with_ff", with_ff_);
-    private_nh.param("with_ff", with_ff_, false);
-    // private_nh.getParam("x_type", x_type_);
-    private_nh.param("x_type", x_type_, true);
-    // private_nh.getParam("debug", debug_);
-    private_nh.param("debug", debug_, true);
-    // private_nh.getParam("auv_name", auv_name_);
-    private_nh.param("auv_name", auv_name_, std::string("auv324"));
+    // private_nh.param("mission", mission_, 6);
+    // private_nh.param("with_ff", with_ff_, false);
+    // private_nh.param("x_type", x_type_, true);
+    // private_nh.param("debug", debug_, true);
+    // private_nh.param("auv_name", auv_name_, std::string("auv324"));
     private_nh.param("file_name", filename_, std::string("control_record"));
     private_nh.param("path", path_, std::string("../record/"));
     private_nh.param("frequency", record_freq_, 1);

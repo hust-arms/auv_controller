@@ -38,7 +38,7 @@ typedef boost::shared_ptr<AUVCtrlMsgsRecorder> AUVCtrlMsgsRecorderPtr;
 class AUVCtrlMsgsRecorderROS
 {
 public:
-    AUVCtrlMsgsRecorderROS();
+    AUVCtrlMsgsRecorderROS(std::string auv_name, bool with_ff, bool x_type, bool debug, int mission);
 
     ~AUVCtrlMsgsRecorderROS();
 
