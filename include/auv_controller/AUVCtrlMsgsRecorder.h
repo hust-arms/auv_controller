@@ -79,6 +79,7 @@ private:
     bool is_record_ot_params_;
 
     const unsigned int ctrl_msgs_num_ = 31;
+    const unsigned int ctrl_msgs_num_ol_ = 33;
 
 }; // class AUVCtrlMsgsRecorder
 }; // ns
