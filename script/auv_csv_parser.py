@@ -228,7 +228,7 @@ class auvOutlineControl():
                 outline_status_msg.p = self.param_list_[i].p_
                 outline_status_msg.q = self.param_list_[i].q_
                 outline_status_msg.r = self.param_list_[i].r_
-                outline_status_msg.ts = selff.param_list_[i].ts_
+                outline_status_msg.ts = self.param_list_[i].ts_
 
                 self.outline_status_pub_.publish(outline_status_msg)
                 
