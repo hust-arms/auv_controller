@@ -43,7 +43,7 @@ AUVCtrlMsgsRecorderROS::AUVCtrlMsgsRecorderROS(std::string auv_name, bool with_f
     // private_nh.param("auv_name", auv_name_, std::string("auv324"));
     private_nh.param("file_name", filename_, std::string("control_record"));
     private_nh.param("path", path_, std::string("../record/"));
-    private_nh.param("frequency", record_freq_, 10);
+    private_nh.param("frequency", record_freq_, 50);
 
     auv_odom_sub_ = nh.subscribe<nav_msgs::Odometry>(auv_name_ + "/pose_gt", 1, 
                         boost::bind(&AUVCtrlMsgsRecorderROS::auvOdometryCb, this, _1));
