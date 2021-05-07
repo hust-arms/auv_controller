@@ -22,28 +22,28 @@ int main(int argc, char** argv)
     if(argc >= 2)
     {
         auv_name = std::string(argv[1]);
-        printf("<auv_ctrlmsgs_recorder_node>: model %s", auv_name.c_str());
+        printf("<auv_ctrlmsgs_recorder_node>: model %s\n", auv_name.c_str());
     }
 
     if(argc >= 3 && strcmp(argv[2], "no_ff") == 0)
     {
-        printf("<auv_ctrlmsgs_recorder_node>: without front fins");
+        printf("<auv_ctrlmsgs_recorder_node>: without front fins\n");
         with_ff = false;
     }
     else
     {
-        printf("<auv_ctrlmsgs_recorder_node>: with front fins");
+        printf("<auv_ctrlmsgs_recorder_node>: with front fins\n");
         with_ff = true;
     }
 
     if(argc >= 4 && strcmp(argv[3], "x") == 0)
     {
-        printf("<auv_ctrlmsgs_recorder_node>: X type rudder");
+        printf("<auv_ctrlmsgs_recorder_node>: X type rudder\n");
         x_type = true;
     }
     else
     {
-        printf("<auv_ctrlmsgs_recorder_node>: common crosshead type");
+        printf("<auv_ctrlmsgs_recorder_node>: common crosshead type\n");
     }
 
     if(argc >= 5)
@@ -52,46 +52,46 @@ int main(int argc, char** argv)
         switch(mission_f)
         {
         case 0:
-            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth");
+            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth\n");
             mission = mission_f;
             break;
         case 1:
-            printf("<auv_ctrlmsgs_recorder_node>: Fixed lateral distance");
+            printf("<auv_ctrlmsgs_recorder_node>: Fixed lateral distance\n");
             mission = mission_f;
             break;
         case 2:
-            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth & lateral distance");
+            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth & lateral distance\n");
             mission = mission_f;
             break;
         case 3:
-            printf("<auv_ctrlmsgs_recorder_node>: Fixed yaw");
+            printf("<auv_ctrlmsgs_recorder_node>: Fixed yaw\n");
             mission = mission_f;
             break;
         case 4:
-            printf("<auv_ctrlmsgs_recorder_node>: Multi point");
+            printf("<auv_ctrlmsgs_recorder_node>: Multi point\n");
             mission = mission_f;
             break;
         case 5:
-            printf("<auv_ctrlmsgs_recorder_node>: Docking");
+            printf("<auv_ctrlmsgs_recorder_node>: Docking\n");
             mission = mission_f;
             break;
         case 6:
-            printf("<auv_ctrlmsgs_recorder_node>: Outline Control");
+            printf("<auv_ctrlmsgs_recorder_node>: Outline Control\n");
             mission = mission_f;
             break;
         default:
-            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth");
+            printf("<auv_ctrlmsgs_recorder_node>: Fixed depth\n");
         }
     }
 
     if(argc >= 6 && strcmp(argv[5], "debug") == 0)
     {
-        printf("<auv_ctrlmsgs_recorder_node>: debug mode");
+        printf("<auv_ctrlmsgs_recorder_node>: debug mode\n");
         debug = true;
     }
     else
     {
-        printf("<auv_ctrlmsgs_recorder_node>: no debug mode");
+        printf("<auv_ctrlmsgs_recorder_node>: no debug mode\n");
     }
 
     auv_controller::AUVCtrlMsgsRecorderROS auv_ctrlmsgs_recorder(auv_name, with_ff, x_type, debug, mission);

@@ -95,9 +95,9 @@ bool AUVCtrlMsgsRecorder::writeMsgsHeader(const unsigned int model_type, const u
         break;
     case 6: 
         mission = "mission: Outline Control";
+        is_record_ot_params_ = true;
         if(!fw_ptr_->writeData(mission))
         {
-            is_record_ot_params_ = true;
             return false;
         }
         break;
