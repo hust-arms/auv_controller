@@ -10,7 +10,8 @@ import time, datetime
 import matplotlib
 import matplotlib.pyplot as plt
 
-# Parser 
+# @Parser 
+# Pose use degree not rad 
 def model_params_parse(csv_fn, is_outline, stamp):
     print('<model_params_plot>: parse model params')
 
@@ -48,19 +49,19 @@ def model_params_parse(csv_fn, is_outline, stamp):
                 u.append(float(row[5])) 
                 v.append(float(row[6])) 
                 w.append(float(row[7])) 
-                roll.append(float(row[8])) 
-                pitch.append(float(row[9])) 
-                yaw.append(float(row[10])) 
-                p.append(float(row[11])) 
-                q.append(float(row[12])) 
-                r.append(float(row[13])) 
+                roll.append(57.3*float(row[8])) 
+                pitch.append(57.3*float(row[9])) 
+                yaw.append(57.3*float(row[10])) 
+                p.append(57.3*float(row[11])) 
+                q.append(57.3*float(row[12])) 
+                r.append(57.3*float(row[13])) 
                 rpm.append(float(row[14])) 
-                left_bow.append(float(row[15])) 
-                right_bow.append(float(row[16])) 
-                left_stern.append(float(row[17])) 
-                right_stern.append(float(row[18])) 
-                upper_stern.append(float(row[19])) 
-                lower_stern.append(float(row[20])) 
+                left_bow.append(57.3*float(row[15])) 
+                right_bow.append(57.3*float(row[16])) 
+                left_stern.append(57.3*float(row[17])) 
+                right_stern.append(57.3*float(row[18])) 
+                upper_stern.append(57.3*float(row[19])) 
+                lower_stern.append(57.3*float(row[20])) 
                 if is_outline:
                     ts.append(float(row[21])) 
                     ol_x.append(float(row[22])) 
