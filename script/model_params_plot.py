@@ -101,9 +101,6 @@ def model_params_parse(csv_fn, is_outline, stamp):
     # plot and save
     print('<model_params_plot>: plot')
 
-    print("len of x: {}".format(len(x)))
-    print("len of y: {}".format(len(y)))
-
     plt.plot(time, x, 'r-')
     plt.xlabel('time')
     plt.ylabel('model x')
@@ -328,26 +325,31 @@ def model_params_parse(csv_fn, is_outline, stamp):
         plt.xlabel('time')
         plt.ylabel('outline x deviation')
         plt.savefig('../plt/{}_time-outline-model-xdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_y, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline y deviation')
         plt.savefig('../plt/{}_time-outline-model-ydev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_z, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline z deviation')
         plt.savefig('../plt/{}_time-outline-model-zdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_u, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline u deviation')
         plt.savefig('../plt/{}_time-outline-model-udev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_v, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline v deviation')
         plt.savefig('../plt/{}_time-outline-model-vdev.png'.format(stamp))
+        plt.close()
 
         # w is ignored in outline data
 
@@ -355,31 +357,37 @@ def model_params_parse(csv_fn, is_outline, stamp):
         plt.xlabel('time')
         plt.ylabel('outline roll deviation')
         plt.savefig('../plt/{}_time-outline-model-rolldev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_pitch, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline pitch deviation')
         plt.savefig('../plt/{}_time-outline-model-pitchdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_yaw, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline yaw deviation')
         plt.savefig('../plt/{}_time-outline-model-yawdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_p, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline p deviation')
         plt.savefig('../plt/{}_time-outline-model-pdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_q, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline q deviation')
         plt.savefig('../plt/{}_time-outline-model-qdev.png'.format(stamp))
+        plt.close()
 
         plt.plot(time, dev_r, 'b-')
         plt.xlabel('time')
         plt.ylabel('outline r deviation')
         plt.savefig('../plt/{}_time-outline-model-rdev.png'.format(stamp))
+        plt.close()
 
     else:
         fig, ax = plt.subplots()
