@@ -5,7 +5,7 @@
     <arg name="with_ff" default="0"/>
     <arg name="x_type" default="1"/>
     <arg name="debug" default="1" />
-    <arg name="mission" default="3" /> <!-- fixed depth & lateral distance -->
+    <arg name="mission" default="6" /> <!-- fixed depth & lateral distance -->
 
     <node name="auv_ctrlmsgs_recorder_node" pkg="auv_controller" type="auv_ctrlmsgs_recorder_node" 
         respawn="false" output="screen" args="$(arg auv_name) $(arg with_ff) $(arg x_type) $(arg debug)">
