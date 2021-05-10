@@ -75,10 +75,10 @@ class auv324CSVParser():
         # actuator index
         self.ts_ind_ = 0
         self.rpm_ind_ = 35
-        self.fin0_ind_ = 37 # ff: right bow | x_type: upper port | no_ff: left stern
-        self.fin1_ind_ = 36 # ff: left bow | x_type: upper starboard | no_ff: upper stern 
-        self.fin2_ind_ = 38 # ff: left stern | x_type: lower port | no_ff: right stern
-        self.fin3_ind_ = 34 # ff: upper stern | x_type: lower starboard | no_ff: lower stern
+        self.fin0_ind_ = 31 
+        self.fin1_ind_ = 32 
+        self.fin2_ind_ = 33 
+        self.fin3_ind_ = 34 
 
     def get_params(self):
         return self.param_list_
@@ -96,38 +96,43 @@ class auv324CSVParser():
 
                     # parse position & pose
                     param.x_ = float(row[self.x_ind_])
-                    print('<auvCSVParser>: x: {}'.format(param.x_))
+                    # print('<auvCSVParser>: x: {}'.format(param.x_))
                     param.y_ = float(row[self.y_ind_])
-                    print('<auvCSVParser>: y: {}'.format(param.y_))
+                    # print('<auvCSVParser>: y: {}'.format(param.y_))
                     param.z_ = -float(row[self.z_ind_]) # depth 
-                    print('<auvCSVParser>: z: {}'.format(param.z_))
+                    # print('<auvCSVParser>: z: {}'.format(param.z_))
                     param.roll_ = float(row[self.roll_ind_])
-                    print('<auvCSVParser>: roll: {}'.format(param.roll_))
+                    # print('<auvCSVParser>: roll: {}'.format(param.roll_))
                     param.pitch_ = float(row[self.pitch_ind_])
-                    print('<auvCSVParser>: pitch: {}'.format(param.pitch_))
+                    # print('<auvCSVParser>: pitch: {}'.format(param.pitch_))
                     param.yaw_ = float(row[self.yaw_ind_])
-                    print('<auvCSVParser>: yaw: {}'.format(param.yaw_))
+                    # print('<auvCSVParser>: yaw: {}'.format(param.yaw_))
 
                     # parse velocity
                     param.u_ = float(row[self.u_ind_])
-                    print('<auvCSVParser>: u: {}'.format(param.u_))
+                    # print('<auvCSVParser>: u: {}'.format(param.u_))
                     param.v_ = float(row[self.v_ind_])
-                    print('<auvCSVParser>: v: {}'.format(param.v_))
+                    # print('<auvCSVParser>: v: {}'.format(param.v_))
                     param.w_ = float(row[self.w_ind_])
-                    print('<auvCSVParser>: w: {}'.format(param.w_))
+                    # print('<auvCSVParser>: w: {}'.format(param.w_))
                     param.p_ = float(row[self.p_ind_])
-                    print('<auvCSVParser>: p: {}'.format(param.p_))
+                    # print('<auvCSVParser>: p: {}'.format(param.p_))
                     param.q_ = float(row[self.q_ind_])
-                    print('<auvCSVParser>: q: {}'.format(param.q_))
+                    # print('<auvCSVParser>: q: {}'.format(param.q_))
                     param.r_ = float(row[self.r_ind_])
-                    print('<auvCSVParser>: r: {}'.format(param.r_))
+                    # print('<auvCSVParser>: r: {}'.format(param.r_))
 
                     param.ts_ = int(time.mktime(time.strptime(self.date_ + ' ' + row[self.ts_ind_], '%Y-%m-%d %H:%M:%S.%f')))
-                    param.rpm_ = float(row[self.rpm_ind_]) * 2300
+                    param.rpm_ = float(row[self.rpm_ind_]) * 0.01 * 2300
+                    print('<auvCSVParser>: rpm: {}'.format(param.rpm_))
                     param.fin0_ = float(row[self.fin0_ind_]) / 57.3
+                    # print('<auvCSVParser>: fin0: {}'.format(param.fin0_))
                     param.fin1_ = float(row[self.fin1_ind_]) / 57.3
+                    # print('<auvCSVParser>: fin1: {}'.format(param.fin1_))
                     param.fin2_ = float(row[self.fin2_ind_]) / 57.3
+                    # print('<auvCSVParser>: fin2: {}'.format(param.fin2_))
                     param.fin3_ = float(row[self.fin3_ind_]) / 57.3
+                    # print('<auvCSVParser>: fin3: {}'.format(param.fin3_))
                     self.param_list_.append(param)
 
                 k += 1
@@ -150,7 +155,7 @@ class auv324OutlineControl():
         self.auv_csv_parser_.parse_csv(csv_fn)
         self.param_list_ = self.auv_csv_parser_.get_params()
 
-        rate = rospy.Rate(100)
+        rate = rospy.Rate(2)
 
         # publish
         print('<auvOutlineControl>: publish parsed parameters')
@@ -196,6 +201,11 @@ class auv324OutlineControl():
                 outline_status_msg.q = self.param_list_[i].q_
                 outline_status_msg.r = self.param_list_[i].r_
                 outline_status_msg.ts = self.param_list_[i].ts_
+
+                outline_status_msg.fin0 = self.param_list_[i].fin0_
+                outline_status_msg.fin1 = self.param_list_[i].fin1_
+                outline_status_msg.fin2 = self.param_list_[i].fin2_
+                outline_status_msg.fin3 = self.param_list_[i].fin3_
 
                 self.outline_status_pub_.publish(outline_status_msg)
                 
