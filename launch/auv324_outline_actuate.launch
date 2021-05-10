@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+    <!--<arg name="auv_name" default="auv324"/>
+    <arg name="with_ff" default="no_ff"/>
+    <arg name="x_type" default="x"/>
+    <arg name="debug" default="debug"/>
+    <arg name="mission" default="6"/>-->
+
+    <arg name="auv_name" default="auv324"/>
+    <arg name="with_ff" default="no_ff"/>
+    <arg name="x_type" default="x"/>
+    <arg name="debug" default="debug"/>
+    <arg name="mission" default="6"/>
+
+    <node name="auv_ctrlmsgs_recorder_node" pkg="auv_controller" type="auv_ctrlmsgs_recorder_node"
+        respawn="false" output="screen" args="$(arg auv_name) $(arg with_ff) $(arg x_type) $(arg mission) $(arg debug)">
+        <rosparam param="filename">control_record</rosparam>
+        <rosparam param="path">/home/wz9562/Documents/catkin_arms/src/auv_controller/record/</rosparam>
+        <rosparam param="frequency">50</rosparam>
+    </node>
+
+    <node name="auv324_csv_parser_node" pkg="auv_controller" type="auv324_csv_parser_node" respawn="false" output="screen"/>
+
+</launch>
