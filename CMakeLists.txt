@@ -240,6 +240,6 @@ target_link_libraries(tcp_server_test_node tcp_server ${catkin_LIBRARIES})
 target_link_libraries(tcp_client_test_node tcp_client ${catkin_LIBRARIES})
 
 # Install python scripts
-catkin_install_python(PROGRAMS script/auv_csv_parser_node
+catkin_install_python(PROGRAMS script/auv_csv_parser_node script/auv324_csv_parser_node
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
