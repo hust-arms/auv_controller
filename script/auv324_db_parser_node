@@ -5,15 +5,20 @@ import rospy
 import auv324_db_parser
 
 if __name__ == '__main__':
-    try:
-        db_parser = auv324_db_parser.auv324DBParser('T20210531')
-        db_parser.parse_db('../db/AUV_DB_20210531')
-        param_list = db_parser.get_params()
+    # try:
+    #     db_parser = auv324_db_parser.auv324DBParser('T20210603')
+    #     db_parser.parse_mission('../db/AUV_DB')
+    #     param_list = db_parser.get_params()
+    # 
+    #     auv324_db_parser.plotAUV324Param(param_list, 'plt/')
+    # 
+    # except Exception:
+    #     print('<auv324_db_parser_node>: process auv324 database parameters failed')
+    #     pass
 
-        auv324_db_parser.plotAUV324Param(param_list, '../plt/')
-
-    except Exception, er:
-        print(er)
-        pass
-
+    db_parser = auv324_db_parser.auv324DBParser('T20210603')
+    [mission_start_row_list, mission_end_row_list, list_len] = db_parser.parse_mission('AUV_DB')
+    for i in range(list_len):
+        param_list = db_parser.parse_field_param('AUV_DB', mission_start_row_list[i], mission_end_row_list[i])
+        auv324_db_parser.plotAUV324Param(param_list, 'nav{}'.format(i+1), 'plot/')
 
