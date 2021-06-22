@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   uuv_gazebo_ros_plugins_msgs
   armsauv_msgs
+  auv324_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -66,6 +67,7 @@ catkin_package(
     roscpp 
     sensor_msgs 
     std_msgs 
+    auv324_msgs
     tf 
     uuv_gazebo_ros_plugins_msgs
   DEPENDS 
@@ -91,6 +93,7 @@ add_library(auv_base_controller
   src/AUVControllerROS.cpp
   src/PIDController.cpp
   src/AUVControllerXF.cpp
+  src/AUV324ControllerROS.cpp
 )
 
 add_library(auv_pid_controller
@@ -157,6 +160,10 @@ add_executable(auv_controller_test_node
   test/AUVControllerTest.cpp
 )
 
+add_executable(auv324_controller_test_node
+  test/AUV324ControllerTest.cpp
+)
+
 add_executable(auv_pid_controller_test_node
   test/AUVPIDControllerTest.cpp
 )
@@ -193,11 +200,17 @@ add_executable(tcp_client_test_node
 #   test/AUVDBParser.cpp
 # )
 
+add_executable(auv_position_controller_test_node
+  test/AUVPositionControllerTest.cpp
+)
+
 add_dependencies(reset_control_state_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(armsauv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(auv_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(auv324_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(auv_pid_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
@@ -215,6 +228,8 @@ add_dependencies(tcp_server_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 
 add_dependencies(tcp_client_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+add_dependencies(auv_position_controller_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 # add_dependencies(auv_db_parser_test_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(reset_control_state_node ${PROJECT_NAME} ${catkin_LIBRARIES})
@@ -222,6 +237,8 @@ target_link_libraries(reset_control_state_node ${PROJECT_NAME} ${catkin_LIBRARIE
 target_link_libraries(armsauv_controller_test_node ${PROJECT_NAME} file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
+
+target_link_libraries(auv324_controller_test_node auv_base_controller file_writer ${catkin_LIBRARIES})
 
 target_link_libraries(auv_pid_controller_test_node auv_pid_controller file_writer ${catkin_LIBRARIES})
 
@@ -238,6 +255,8 @@ target_link_libraries(async_tcp_server_test_node async_tcp_server ${catkin_LIBRA
 target_link_libraries(tcp_server_test_node tcp_server ${catkin_LIBRARIES})
 
 target_link_libraries(tcp_client_test_node tcp_client ${catkin_LIBRARIES})
+
+target_link_libraries(auv_position_controller_test_node ${catkin_LIBRARIES})
 
 # Install python scripts
 catkin_install_python(PROGRAMS script/auv_csv_parser_node script/auv324_csv_parser_node
