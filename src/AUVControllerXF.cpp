@@ -218,6 +218,19 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     this->deltalp_ = deltar(2);
     this->deltaup_ = deltar(3);
 
+    if(isnan(fabs(this->deltaus_)) || isinf(fabs(this->deltaus_))){
+        this->deltaus_ = 0.0;
+    }
+    if(isnan(fabs(this->deltals_)) || isinf(fabs(this->deltals_))){
+        this->deltals_ = 0.0;
+    }
+    if(isnan(fabs(this->deltalp_)) || isinf(fabs(this->deltalp_))){
+        this->deltalp_ = 0.0;
+    }
+    if(isnan(fabs(this->deltaup_)) || isinf(fabs(this->deltaup_))){
+        this->deltaup_ = 0.0;
+    }
+
     if(fabs(this->deltaup_) > 30 / 57.3){
         this->deltaup_ = (30 / 57.3) * sign(this->deltaup_);
     }
@@ -230,6 +243,9 @@ void AUVControllerXF::controllerRun(const AUVKineticSensor& sensor, const AUVCon
     if(fabs(this->deltals_) > 30 / 57.3){
         this->deltals_ = (30 / 57.3) * sign(this->deltals_);
     }
+
+    std::cout << "Filtered X allocate: " << this->deltaup_ << " " << 
+        this->deltaus_ << " " << this->deltalp_ << " " << this->deltals_ << std::endl;
 
     // Print control value of forward, afterward and orientation rudder
     // printf("uppper port: %f upper starboard: %f lower port: %f lower starboard: %f\n", this->deltaup_, this->deltaus_, this->deltalp_, this->deltals_);
