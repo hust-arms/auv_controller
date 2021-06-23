@@ -33,7 +33,7 @@
 #include <uuv_gazebo_ros_plugins_msgs/FloatStamped.h>
 #include <tf/transform_datatypes.h>
 
-#include <armsauv_msgs/DesiredParams.h>
+#include <auv324_msgs/UAimPointStamped.h>
 #include <auv_control_msgs/AUVCtrlInfo.h>
 #include <auv_control_msgs/AUVCtrlDeviation.h>
 #include <auv324_msgs/UVelStamped.h>
@@ -59,7 +59,7 @@ public:
     /**
      * @brief Default constructor
      */ 
-    AUV324ControllerROS(std::string name, bool with_ff, bool x_type, bool debug);
+    AUV324ControllerROS( bool debug);
 
     /**
      * @brief Deconstructor
@@ -138,11 +138,6 @@ private:
     void wakeEMYawCheckThread(const ros::TimerEvent& event);
 
     /**
-     * @brief Apply actuator input for model without front fins and model with front fins 
-     */
-    void applyActuatorInput(double rudder, double fwdfin, double backfin, double rpm);
-
-    /**
      * @brief Apply actuator input for model with X type fins
      */ 
     void applyActuatorInput(double upper_p, double upper_s, double lower_p, double lower_s, double rpm);
@@ -157,48 +152,48 @@ private:
      * @brief Return desired depth
      */
     double getDesiredDepth(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return depth_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return depthd_;
     }
 
     /**
      * @brief Return desired pitch
      */
     double getDesiredPitch(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return pitch_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return pitchd_;
     }
     
     /**
      * @brief Return desired lateral deviation
      */
     double getDesiredX(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return x_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return xd_;
     }
 
     /**
      * @brief Return desired lateral deviation
      */
     double getDesiredY(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return y_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return yd_;
     }
     
     /**
      * @brief Return desired depth
      */
     double getDesiredYaw(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return yaw_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return yawd_;
     }
 
     /**
      * @brief Return desired x linear velocity
      */
     double getDesiredLinVelX(){
-        std::lock_guard<std::mutex> guard(desired_mutex_);
-        return u_d_;
+        std::lock_guard<std::mutex> guard(aimpoint_mutex_);
+        return ud_;
     }
     
     /* States output interface */
@@ -279,7 +274,7 @@ private:
      */
     double getAngVelRoll(){
         std::lock_guard<std::mutex> guard(imu_mutex_);
-        return roll_dot_;
+        return p_;
     }
     
     /**
@@ -287,7 +282,7 @@ private:
      */
     double getAngVelPitch(){
         std::lock_guard<std::mutex> guard(imu_mutex_);
-        return pitch_dot_;
+        return q_;
     }
     
     /**
@@ -295,7 +290,7 @@ private:
      */
     double getAngVelYaw(){
         std::lock_guard<std::mutex> guard(imu_mutex_);
-        return yaw_dot_;
+        return r_;
     }
 
     /* Sensors callback func */
@@ -322,7 +317,7 @@ private:
     /**
      * @brief Desired input 
      */
-    void desiredParamshCb(const armsauv_msgs::DesiredParams::ConstPtr& msg);
+    void aimPointCb(const auv324_msgs::UAimPointStamped::ConstPtr& msg);
 
     /**
      * @brief AUV status callback
@@ -434,15 +429,16 @@ private:
     AUVBaseController* controller_;
     PIDControllerPtr u_controller_;
 
+    std::string ns_;
+
     /* ROS components */
-    ros::Publisher fin0_pub_, fin1_pub_, fin2_pub_, fin3_pub_, fin4_pub_, fin5_pub_;
-    ros::Publisher front_rudder_ang_pub_, back_rudder_ang_pub_, vert_rudder_ang_pub_;
+    ros::Publisher fin0_pub_, fin1_pub_, fin2_pub_, fin3_pub_;
     ros::Publisher thruster0_pub_; 
 
     ros::Publisher ctrl_info_pub_, ctrl_dev_pub_;
 
     ros::Subscriber imu_sub_, pressure_sub_, posegt_sub_, dvl_sub_; // sensors messages sub
-    ros::Subscriber desired_sub_;
+    ros::Subscriber aimpoint_sub_;
 
     ros::Time last_valid_ctrl_, ctrl_time_;
     ros::Time last_stable_;
@@ -468,14 +464,13 @@ private:
 
     double u_, v_, w_; // linear velocity in vehicle frame
     double roll_, pitch_, yaw_; // pose in vehicle frame
-    double roll_dot_, pitch_dot_, yaw_dot_; // angular velocity in vehicle frame
+    double p_, q_, r_; // angular velocity in vehicle frame
 
-    double x_d_;
-    double depth_d_, pitch_d_, y_d_, yaw_d_; // desired params
-    double u_d_;
+    double xd_;
+    double depthd_, pitchd_, yd_, yawd_; // desired params
+    double ud_;
 
     /* Controll var */
-    double fwdfin_, backfin_, vertfin_;
     double upper_p_, upper_s_, lower_p_, lower_s_; // for X type rudder
     double rpm_, ori_rpm_;
 
@@ -518,7 +513,7 @@ private:
     std::mutex imu_mutex_, pressure_mutex_, posegt_mutex_, dvl_mutex_;
 
     /* Source lock for desired params */
-    std::mutex desired_mutex_; 
+    std::mutex aimpoint_mutex_; 
 
     /* Source lock for control variable */
     std::mutex ctrl_var_mutex_, ctrl_vel_mutex_;
@@ -527,7 +522,6 @@ private:
     std::mutex print_mutex_;
 
     /* flags */
-    bool with_ff_, x_type_;
     // bool is_ctrl_run_, is_emerg_run_;
     bool debug_;
 
